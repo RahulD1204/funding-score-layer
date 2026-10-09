@@ -21,11 +21,11 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 | Table | Key columns | Purpose |
 | --- | --- | --- |
 | `customers` | id, label, holdout flag, archetype | Stand-in for Razorpay's unique customer id |
-| `obligations` | id, merchant id, product id, customer id, kind (`EMI` or `premium`), amount, due day of month, mandate status, status | The recurring debit |
+| `obligations` | id, merchant id, product id, customer id, kind (`EMI` or `premium`), amount, due day of month, mandate status, status, bank | The recurring debit |
 | `consents` | customer id, merchant id, party, purpose, status, granted date, withdrawn date | Consent records |
-| `transactions` | id, customer id, merchant id, date, amount, direction, kind, own-merchant flag, status, reason code, bank text, source | Every synthetic transaction the customer makes through Razorpay. Credits carry a source id |
+| `transactions` | id, customer id, merchant id (empty for everyday shops), date, amount, direction, kind, own-merchant flag, status, reason code, bank text, source, obligation id, cycle due date, attempt day | Every synthetic transaction the customer makes through Razorpay. Credits carry a source id |
 | `bank_downtimes` | bank, from date, to date | Lookup for triage |
-| `customer_signals` | customer id, as-of date, timing observations, months covered, affordability observations, anchor kind, anchor value, spread, confidence, tier, salary recognized, likelihood by day | Signal store |
+| `customer_signals` | customer id, as-of date, obligation id, timing observations, months covered, affordability observations, failure evidence, identity linked, anchor kind, anchor value, spread, confidence, tier, salary recognized, likelihood by day | Signal store |
 | `predictions` | obligation id, cycle due date, source (`rule` or `model`), h, u, likelihood by day, confidence, model version | Stored scores |
 | `debit_events` | event id (unique), event type, obligation id, cycle due date, reason code, bank text, clock date, raw payload, processed flag | Event intake |
 | `triage_results` | event id, label, decided by (`rule`, `lookup`, `agent`), evidence, agent strength | Triage output |
@@ -40,7 +40,7 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 | Table | Key columns | Purpose |
 | --- | --- | --- |
 | `sim_clock` | today | The simulated date. One row |
-| `sim_truth` | customer id, cycle due date, funded on day, true cause | Ground truth. Read only by `advance-day` and the tests |
+| `sim_truth` | customer id, obligation id, cycle due date, funded on day, true cause, reason code and bank text returned on the due date | Ground truth. Read only by `advance-day` and the tests |
 | `prompts` | name, version, text, active flag | Agent prompts and message templates in one place |
 | `llm_runs` | id, time, user id, purpose, agent, prompt version, model, tools called, steps, input fields, output, validation result, tokens, time taken, status | Every model call and agent step, with what the rules did with the answer |
 | `usage` | user id, date, agent runs | The per-user daily limit of 50 agent runs |

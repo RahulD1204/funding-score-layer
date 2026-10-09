@@ -1,0 +1,3 @@
+id,merchant_id,name,segment,rail,last_allowed_day,max_representations,standing_default,result_delay_days,penal_charge_per_day_paise,bounce_charge_paise,baseline_retry_days,grace_days
+p-northfield-personal-loan,m-northfield,Personal loan,lending,bank_mandate,10,2,Balanced,2,800.0,50000.0,"[3, 6, 9]",
+p-harbour-term-plan,m-harbour,"Term plan, monthly premium",insurance,upi_autopay,12,3,Balanced,0,,,"[1, 2, 3]",15.0

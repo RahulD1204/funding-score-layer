@@ -12,7 +12,9 @@ Built for Razorpay's AI PM Build Challenge. **All data is synthetic. This is not
 - **Golden cases** (`tests/`): fixed inputs with known right answers. `npm test` reruns them all.
 - **An engine preview** (the home page): nine invented cases played through the real engine, viewed as a lender, an insurer and Razorpay ops, with a simulated clock.
 
-Not built yet: the trained model, the database, sign-in, the server functions and the three Claude agents. `specs/10-build-plan.md` lists the remaining steps as prompts for Claude Code.
+- **Synthetic data and models** (`ml/`): invented customers with 24 months of history, the median-day baseline, two XGBoost models and a model card (`ml/export/model_card.md`). Writes the CSV files the database will load. See `ml/README.md`.
+
+Not built yet: the database, sign-in, the server functions and the three Claude agents. `specs/10-build-plan.md` lists the remaining steps as prompts for Claude Code.
 
 ## Try it
 

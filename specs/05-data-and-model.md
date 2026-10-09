@@ -92,7 +92,7 @@ CSV files in `ml/export/`. A seed script loads them into Supabase with one comma
 | merchants, products, customers, obligations, consents, bank_downtimes | Two merchants, about 200 customers | Tables of the same names |
 | transactions | The last 12 months for those customers | `transactions` |
 | customer_signals | One row per customer | `customer_signals` |
-| predictions | One row per obligation for the demo cycle, from the rule and from the chosen model | `predictions` |
+| predictions | One row per obligation for the demo cycle, from the rule and from the chosen model. The ten seeded cases have a rule row only, so they play as scripted (decided 10 October 2026) | `predictions` |
 | sim_truth | One row per obligation for the demo cycle | `sim_truth` |
 | model_card | One row | `model_card` |
 

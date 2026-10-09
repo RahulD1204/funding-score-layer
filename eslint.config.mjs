@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Python model work: the virtual environment and intermediate files.
+    "ml/.venv/**",
+    "ml/work/**",
   ]),
 ]);
 

@@ -42,3 +42,8 @@ next-env.d.ts
 
 # keep the example file
 !.env.example
+
+# python model work (rebuilt by ml/run_all.py)
+/ml/.venv/
+/ml/work/
+__pycache__/

@@ -12,7 +12,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 2 | App scaffold | Done | `npm run build` succeeds |
 | 3 | Rule engine, golden cases, engine preview | Done | `npm test` passes; the home page plays the demo cases |
 | 0 | Your setup: GitHub, Vercel, Supabase, Anthropic key | **Next, yours** | The Vercel link shows the preview |
-| 4 | Synthetic data and models | To do | The model card prints all three models; the ten seeded cases are in the export |
+| 4 | Synthetic data and models | Done | The model card prints all three models; the ten seeded cases are in the export |
 | 5 | Database, access rules and seed | To do | Tables are seeded; the merchant-access tests pass |
 | 6 | Server functions and flow tests | To do | The seeded cases play through the server functions |
 | 7 | Screens on live data | To do | Seeded cases 2, 5 and 9 play through on the Vercel preview link |

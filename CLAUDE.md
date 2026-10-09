@@ -25,7 +25,8 @@ If code and spec disagree, stop and ask. Do not guess.
 
 - `lib/engine/`: every rule, as pure functions, with golden cases in `tests/`.
 - `components/preview/` and `lib/demo/`: the home page preview, which plays fixed demo cases through the real engine with no database.
-- Not built yet: `ml/`, the database, server functions, login, the real screens, the agents.
+- `ml/`: synthetic data, the median-day baseline, the XGBoost models and the model card. Exports CSV files to `ml/export/`. See `ml/README.md`.
+- Not built yet: the database, server functions, login, the real screens, the agents.
 
 ## Hard rules
 
