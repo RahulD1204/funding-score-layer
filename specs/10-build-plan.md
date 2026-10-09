@@ -13,7 +13,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 3 | Rule engine, golden cases, engine preview | Done | `npm test` passes; the home page plays the demo cases |
 | 0 | Your setup: GitHub, Vercel, Supabase, Anthropic key | **Next, yours** | The Vercel link shows the preview |
 | 4 | Synthetic data and models | Done | The model card prints all three models; the ten seeded cases are in the export |
-| 5 | Database, access rules and seed | Done on the test project | Tables are seeded; the merchant-access tests pass |
+| 5 | Database, access rules and seed | Done | Tables are seeded; the merchant-access tests pass |
 | 6 | Server functions and flow tests | To do | The seeded cases play through the server functions |
 | 7 | Screens on live data | To do | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
 | 8 | Three agents | To do | Mocked agent tests pass; three live runs per agent read sensibly |
@@ -23,7 +23,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 
 Notes from step 5:
 
-- The demo project is not migrated or seeded yet. Pull its variables with `vercel env pull .env.local`, then run `npm run db:migrate -- --target demo` and `npm run db:seed -- --target demo` before step 7.
+- Both projects are migrated and seeded. The demo project's variables come from `npx vercel@latest env pull .env.local`, which adds to the file and keeps local-only lines. Rerun `npm run db:migrate -- --target demo` and `npm run db:seed -- --target demo` after any new migration.
 - No app role can delete rows, and `audit_log` refuses updates and deletes from every role, the database owner included. Only the owner can empty tables, which is how the seed resets. The Reset demo button (step 11) will need an owner-only database function to do the same.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.

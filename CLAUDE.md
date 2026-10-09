@@ -26,7 +26,7 @@ If code and spec disagree, stop and ask. Do not guess.
 - `lib/engine/`: every rule, as pure functions, with golden cases in `tests/`.
 - `components/preview/` and `lib/demo/`: the home page preview, which plays fixed demo cases through the real engine with no database.
 - `ml/`: synthetic data, the median-day baseline, the XGBoost models and the model card. Exports CSV files to `ml/export/`. See `ml/README.md`.
-- `supabase/migrations/`: the 26 tables and their access rules. `scripts/`: the migration runner and the seed, which loads `ml/export/` and creates the three demo users. `tests/db/`: access tests against the test Supabase project. Applied to the test project only so far.
+- `supabase/migrations/`: the 26 tables and their access rules. `scripts/`: the migration runner and the seed, which loads `ml/export/` and creates the three demo users. `tests/db/`: access tests against the test Supabase project. Applied to both the test and the demo project.
 - Not built yet: server functions, login screens, the real screens, the agents.
 
 ## Hard rules

@@ -59,7 +59,18 @@ export function loadTarget(target: Target): TargetConfig {
   if (target === "demo" && url === process.env.TEST_SUPABASE_URL?.trim()) {
     throw new Error("The demo URL is the same as the test URL. Check .env.local.");
   }
-  return { target, url: url!, secretKey: secretKey!, dbUrl: dbUrl! };
+  return { target, url: url!, secretKey: secretKey!, dbUrl: withoutSslMode(dbUrl!) };
+}
+
+/**
+ * Vercel's connection strings carry sslmode=require, which the pg driver reads as "verify the
+ * certificate against a public authority" and which would override DB_SSL below. Supabase's
+ * certificate is not publicly signed, so the setting is dropped here. The connection stays encrypted.
+ */
+function withoutSslMode(dbUrl: string): string {
+  const parsed = new URL(dbUrl);
+  parsed.searchParams.delete("sslmode");
+  return parsed.toString();
 }
 
 /**
