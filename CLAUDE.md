@@ -27,7 +27,8 @@ If code and spec disagree, stop and ask. Do not guess.
 - `components/preview/` and `lib/demo/`: the home page preview, which plays fixed demo cases through the real engine with no database.
 - `ml/`: synthetic data, the median-day baseline, the XGBoost models and the model card. Exports CSV files to `ml/export/`. See `ml/README.md`.
 - `supabase/migrations/`: the 26 tables and their access rules. `scripts/`: the migration runner and the seed, which loads `ml/export/` and creates the three demo users. `tests/db/`: access tests against the test Supabase project. Applied to both the test and the demo project.
-- Not built yet: server functions, login screens, the real screens, the agents.
+- `app/api/` and `lib/server/`: the five server functions (process-debit-event, choose-schedule, advance-day, update-controls, reset-demo), with login and role checks, storage and fail-open. `tests/db/flows.test.ts`: flow tests against the test project. Notes in `specs/10-build-plan.md` under step 6.
+- Not built yet: login screens, the real screens, the agents, message text.
 
 ## Hard rules
 

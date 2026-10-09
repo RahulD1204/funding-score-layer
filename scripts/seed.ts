@@ -1,5 +1,6 @@
-// Loads the synthetic data from ml/export/ into a Supabase project, creates the three demo users
-// and sets the simulated clock. Safe to rerun: it empties every table and loads them again.
+// Loads the synthetic data from ml/export/ into a Supabase project, creates the three demo users,
+// sets the simulated clock and saves the copy that Reset demo restores. Safe to rerun: it empties
+// every table and loads them again.
 //
 //   npm run db:seed                     the test project
 //   npm run db:seed -- --target demo    the demo project
@@ -180,6 +181,9 @@ async function main() {
 
     await db.query("insert into public.sim_clock (today) values ($1)", [SEED_TODAY]);
     counts.push(["sim_clock", 1]);
+
+    // The copy Reset demo restores the seeded settings and clock from (migration 20261010000003).
+    await db.query("select private.take_seed_snapshot()");
 
     await db.query("commit");
   } catch (error) {

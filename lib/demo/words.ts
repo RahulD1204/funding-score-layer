@@ -34,7 +34,18 @@ export const ACTION_STATUS_WORDS: Record<ActionStatus, { label: string; tone: To
   dropped: { label: "Dropped", tone: "idle" },
 };
 
+/** The failure reason a merchant sees, from the triage label. Stored in merchant_cases.failure_words. */
+export const FAILURE_WORDS: Record<string, string> = {
+  balance: "Insufficient funds",
+  mandate_cancelled: "Mandate cancelled",
+  mandate_paused: "Mandate paused",
+  instrument_closed: "Account closed",
+  bank_downtime: "Bank downtime",
+  unknown: "Reason unclear",
+};
+
 const STOP_WORDS: Record<string, string> = {
+  server_error: "a server check failed",
   kill_switch: "the kill switch is on",
   forced_normal_retries: "the merchant chose Razorpay's original retries for this case",
   no_customer_consent: "the customer withdrew consent",
@@ -59,6 +70,7 @@ const FAIL_OPEN_WORDS: Record<string, string> = {
   layer_off: "The layer is switched off for this merchant.",
   product_not_configured: "The product's limits are not set.",
   paid_outside: "The cycle was already paid outside the plan.",
+  server_error: "A server check failed, so the case was handed back to the original retries.",
 };
 
 export function failOpenWords(reason: string | null): string {

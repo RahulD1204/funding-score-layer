@@ -14,7 +14,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 0 | Your setup: GitHub, Vercel, Supabase, Anthropic key | **Next, yours** | The Vercel link shows the preview |
 | 4 | Synthetic data and models | Done | The model card prints all three models; the ten seeded cases are in the export |
 | 5 | Database, access rules and seed | Done | Tables are seeded; the merchant-access tests pass |
-| 6 | Server functions and flow tests | To do | The seeded cases play through the server functions |
+| 6 | Server functions and flow tests | Done | The seeded cases play through the server functions |
 | 7 | Screens on live data | To do | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
 | 8 | Three agents | To do | Mocked agent tests pass; three live runs per agent read sensibly |
 | 9 | Message text | To do | The template shows first; the polish tests pass |
@@ -25,6 +25,15 @@ Notes from step 5:
 
 - Both projects are migrated and seeded. The demo project's variables come from `npx vercel@latest env pull .env.local`, which adds to the file and keeps local-only lines. Rerun `npm run db:migrate -- --target demo` and `npm run db:seed -- --target demo` after any new migration.
 - No app role can delete rows, and `audit_log` refuses updates and deletes from every role, the database owner included. Only the owner can empty tables, which is how the seed resets. The Reset demo button (step 11) will need an owner-only database function to do the same.
+
+Notes from step 6 (decided 10 October 2026):
+
+- The five route handlers are in `app/api/`, the work in `lib/server/flows/`. They take the login token in the `Authorization: Bearer` header. Cookie logins and `proxy.ts` come with the login page in step 7.
+- Migration `20261010000003_server_writes.sql` adds `save_case_bundle` (one transaction per case write) and `reset_demo`. Reset empties cases, events and `audit_log`, then writes one "demo reset" audit row. It restores settings, consents and the clock from `private.seed_snapshot`, a copy the seed script saves. That table is in the hidden `private` schema and is not one of the 26 app tables.
+- Until the signed customer link exists (customer phone mock, steps 7 and 9), ops stands in for the customer: `withdraw_consent` and `pay_by_link` in `update-controls` are ops-only. Replace this with the signed case token then.
+- `vercel.json` runs every function in Mumbai (`bom1`), next to Supabase.
+- A failed debit event is accepted only while the clock is between the due date and the day the failure is known. Inject events on the due date, or reset the demo to replay.
+- The Triage agent and the desk agent are not connected yet. A `needs_agent` result fails open as unknown, and desk cases store the rule-based fixes as proposed.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

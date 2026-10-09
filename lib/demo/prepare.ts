@@ -18,6 +18,7 @@ import {
   type SimCase,
 } from "@/lib/engine";
 import { DEMO_CASES, DEMO_START_DAY, INSURER, type DemoCaseSeed } from "./cases";
+import { FAILURE_WORDS } from "./words";
 
 export type PreviewRoute = "schedules" | "out_of_reach" | "exceptions_desk" | "original_retries";
 
@@ -79,15 +80,6 @@ export interface PreparedCase {
   sim: SimCase | null;
   world: { fundedOnDay: number | null };
 }
-
-const FAILURE_WORDS: Record<string, string> = {
-  balance: "Insufficient funds",
-  mandate_cancelled: "Mandate cancelled",
-  mandate_paused: "Mandate paused",
-  instrument_closed: "Account closed",
-  bank_downtime: "Bank downtime",
-  unknown: "Reason unclear",
-};
 
 function prepare(seed: DemoCaseSeed): PreparedCase {
   const decision = evaluateFailedDebit(seed.input);
