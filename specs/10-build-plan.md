@@ -15,7 +15,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 4 | Synthetic data and models | Done | The model card prints all three models; the ten seeded cases are in the export |
 | 5 | Database, access rules and seed | Done | Tables are seeded; the merchant-access tests pass |
 | 6 | Server functions and flow tests | Done | The seeded cases play through the server functions |
-| 7 | Screens on live data | To do | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
+| 7 | Screens on live data | Done | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
 | 8 | Three agents | To do | Mocked agent tests pass; three live runs per agent read sensibly |
 | 9 | Message text | To do | The template shows first; the polish tests pass |
 | 10 | Security review | To do | Every row of `08-security.md` is checked and findings are fixed |
@@ -34,6 +34,16 @@ Notes from step 6 (decided 10 October 2026):
 - `vercel.json` runs every function in Mumbai (`bom1`), next to Supabase.
 - A failed debit event is accepted only while the clock is between the due date and the day the failure is known. Inject events on the due date, or reset the demo to replay.
 - The Triage agent and the desk agent are not connected yet. A `needs_agent` result fails open as unknown, and desk cases store the rule-based fixes as proposed.
+
+Notes from step 7 (decided 10 October 2026):
+
+- Login is a cookie (`@supabase/ssr`, `proxy.ts`). Pages check it with `getClaims()` and read the role from `profiles`, with the user's own login, so row-level security applies. The server functions accept the cookie or a Bearer token; a cookie request from another site is refused (`cross_site`) and not audited.
+- Migration `20261010000004_demo_today.sql` adds `demo_today()`: the simulated date for any logged-in user. The `sim_clock` table stays ops-only.
+- The customer phone mock is built (`/c/<token>`). The token is the case id signed with `CUSTOMER_LINK_SECRET` (Vercel Production and Preview, and `.env.local`). `withdraw_consent` and `pay_by_link` in `update-controls` now take that token only; ops no longer stands in. `customer-case` returns the phone's fields. Ops opens the link from the internal case view.
+- Merchants read only merchant tables, which hold no per-attempt history. The lender's plan panel shows the chosen schedule's dates, the next action, the result date and retries used; the full activity is on the ops internal view. The customer message is the filled template until step 9 stores it.
+- Pick and lock dates on screen use the engine's `lockDay` and `lastPickDay`, the same functions `pickSchedule` and the clock use.
+- The desk shows its queue; approving fixes waits for `approve-fixes` in step 8. The polish switch is shown, not editable, until step 9. The Ops assistant box is shown, not connected.
+- The engine preview moved to `/preview`. The home page is the login.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

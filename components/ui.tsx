@@ -1,4 +1,4 @@
-// Small display pieces shared by the preview screens.
+// Small display pieces shared by every screen and the engine preview.
 
 import type { ReactNode } from "react";
 import type { Tone } from "@/lib/demo/words";
@@ -51,21 +51,24 @@ export function Button({
   disabled,
   variant = "primary",
   title,
+  type = "button",
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: "primary" | "secondary" | "quiet";
+  variant?: "primary" | "secondary" | "quiet" | "danger";
   title?: string;
+  type?: "button" | "submit";
 }) {
   const styles = {
     primary: "bg-action text-white hover:bg-action-dark disabled:bg-idle-soft disabled:text-muted",
     secondary: "border border-line bg-white text-ink hover:bg-canvas disabled:text-muted",
     quiet: "text-action hover:underline disabled:text-muted disabled:no-underline",
+    danger: "bg-failed text-white hover:bg-[#991b1b] disabled:bg-idle-soft disabled:text-muted",
   }[variant];
   return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
       title={title}

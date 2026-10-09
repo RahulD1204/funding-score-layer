@@ -63,6 +63,7 @@ Each one requires a login and checks the role, except the customer mock routes, 
 | `update-controls` | Settings and the customer mock | Lender, insurer, customer token | Limits, standing default, fix switches, kill switch, consent withdrawal, pay by link, mark as paid, force original retries. Calls `recordOutsidePayment` or `stopLayer` |
 | `compose-message` | An action locks, or a link is sent | System | Fills the template, optionally polishes with Claude, validates with `validatePolish`, stores the text |
 | `reset-demo` | The Reset demo button | Ops | Restores the seeded state |
+| `customer-case` | The customer phone mock | Customer token | The phone's fields for one case: message, consent status, whether a link is open. Nothing internal |
 | `create-payment-link` (optional) | A link action | System | Calls Razorpay's Payment Links API with test keys |
 
 ## Event path
@@ -99,6 +100,7 @@ All time logic reads `sim_clock.today`. Nothing reads the real date.
 | `TEST_SUPABASE_URL`, `TEST_SUPABASE_SECRET_KEY` | Tests | The second Supabase project |
 | `TEST_SUPABASE_PUBLISHABLE_KEY` | Tests | The test project's public key. The access tests sign in with it, as a browser would |
 | `TEST_SUPABASE_DB_URL` | Migrations, seed, tests | The test project's database connection string (Session pooler). Local `.env.local` only |
+| `CUSTOMER_LINK_SECRET` | Server only | Signs the customer phone mock's case links. Vercel (Production, Preview) and `.env.local` |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Optional | Test keys only |
 
 ## Framework note

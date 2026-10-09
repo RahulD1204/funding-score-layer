@@ -53,6 +53,7 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 - Merchant tables are plain tables written by server functions. They are not views over internal tables.
 - Merchant tables never hold a score, a percentage, confidence, tier, the predicted funded day, salary, employer or archetype. A band is allowed.
 - An ops user reads everything. Only server functions write.
+- Any logged-in user may call `demo_today()`, which returns `sim_clock.today` and nothing else (build step 7). The `sim_clock` table stays closed to merchants.
 - Agents never query the database. Their tools are server functions that return listed fields only (`07-agents.md`).
 - `audit_log` is append-only. No role can update or delete a row.
 - No table has a demographic or location column.

@@ -1,11 +1,11 @@
-// The shell every route handler in app/api/ shares: login and role check, JSON body, the flow,
-// and the answer. A refused request gets an audit row (except a call with no valid login, so
-// anonymous calls cannot fill the log). An unexpected error outside a case also gets one.
+// The shell every route handler in app/api/ shares: JSON body, login and role check, the flow,
+// and the answer. A refused request gets an audit row (except a call with no valid login or from
+// another site, so anonymous calls cannot fill the log). An unexpected error outside a case also gets one.
 // Errors inside a case are handled by the flow itself, which fails the case open.
 
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireRole, type AppRole, type Caller } from "./auth";
+import { requireRole, type Caller, type CallerRole } from "./auth";
 import { HttpError } from "./http-error";
 import { adminClient } from "./supabase";
 import { appendAudit, auditRow, errorText, readToday } from "./store";
@@ -44,7 +44,15 @@ async function auditQuietly(db: SupabaseClient, build: (today: string) => Return
   }
 }
 
-export function routeHandler(name: string, roles: AppRole[], flow: Flow) {
+/** A customer link is a credential: it never goes into the audit log. */
+function withoutToken(body: Body | null): Body | null {
+  if (!body || !("customerToken" in body)) return body;
+  const rest = { ...body };
+  delete rest.customerToken;
+  return rest;
+}
+
+export function routeHandler(name: string, roles: CallerRole[], flow: Flow) {
   return async function POST(request: Request): Promise<Response> {
     let db: SupabaseClient;
     try {
@@ -55,19 +63,19 @@ export function routeHandler(name: string, roles: AppRole[], flow: Flow) {
     let caller: Caller | undefined;
     let body: Body | null = null;
     try {
-      caller = await requireRole(request, db, roles);
       body = await readBody(request);
+      caller = await requireRole(request, db, roles, body);
       const result = await flow({ db, caller, body });
       return Response.json(result.body, { status: result.status ?? 200 });
     } catch (error) {
       if (error instanceof HttpError) {
-        if (error.status !== 401) {
+        if (error.status !== 401 && error.code !== "cross_site") {
           const who = caller ?? error.extra.caller;
           await auditQuietly(db, (today) =>
             auditRow(today, who?.actor ?? `unknown:${error.extra.userId ?? "no-profile"}`, "request_refused", {
               caseId: error.extra.caseId,
               internal: `${name} refused: ${error.code}. ${error.message}`,
-              inputs: { route: name, body },
+              inputs: { route: name, body: withoutToken(body) },
             }),
           );
         }
@@ -77,7 +85,7 @@ export function routeHandler(name: string, roles: AppRole[], flow: Flow) {
       await auditQuietly(db, (today) =>
         auditRow(today, caller?.actor ?? "unknown", "server_error", {
           internal: `${name} failed: ${message}`,
-          inputs: { route: name, body },
+          inputs: { route: name, body: withoutToken(body) },
         }),
       );
       return Response.json(

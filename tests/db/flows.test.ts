@@ -6,15 +6,19 @@
 // Needs the test project migrated and seeded (npm run db:migrate, npm run db:seed).
 // Skipped when the test project's variables are missing.
 
+import { randomBytes } from "node:crypto";
+import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DB_SSL, DEMO_USERS, demoPassword } from "@/scripts/targets";
 import { POST as advanceDay } from "@/app/api/advance-day/route";
 import { POST as chooseSchedule } from "@/app/api/choose-schedule/route";
+import { POST as customerCase } from "@/app/api/customer-case/route";
 import { POST as processDebitEvent } from "@/app/api/process-debit-event/route";
 import { POST as resetDemo } from "@/app/api/reset-demo/route";
 import { POST as updateControls } from "@/app/api/update-controls/route";
+import { customerToken } from "@/lib/server/customer-link";
 
 try {
   process.loadEnvFile(".env.local");
@@ -38,12 +42,18 @@ if (READY) {
   if (DEMO_URLS.includes(env.TEST_SUPABASE_URL)) throw new Error("TEST_SUPABASE_URL points at the demo project. Refusing to run.");
   process.env.SUPABASE_URL = env.TEST_SUPABASE_URL;
   process.env.SUPABASE_SECRET_KEY = env.TEST_SUPABASE_SECRET_KEY;
+  // The login cookie is checked with the publishable key, as the screens send it.
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = env.TEST_SUPABASE_PUBLISHABLE_KEY;
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
+// The customer link's signing key. Any value works for the tests; a fresh one is never printed.
+if (!process.env.CUSTOMER_LINK_SECRET) process.env.CUSTOMER_LINK_SECRET = randomBytes(32).toString("base64url");
+
 const ROUTES = {
   "process-debit-event": processDebitEvent,
+  "customer-case": customerCase,
   "choose-schedule": chooseSchedule,
   "advance-day": advanceDay,
   "update-controls": updateControls,
@@ -66,6 +76,10 @@ describe.skipIf(!READY)("server functions (test project)", () => {
     const response = await ROUTES[route](new Request(`http://localhost/api/${route}`, { method: "POST", headers, body: JSON.stringify(body) }));
     return { status: response.status, json: (await response.json()) as Record<string, unknown> };
   }
+
+  /** The customer acting through the signed case link of the phone mock. */
+  const asCustomer = (caseId: string, route: RouteName, body: Record<string, unknown> = {}) =>
+    call(route, null, { ...body, customerToken: customerToken(caseId) });
 
   const rows = async (sql: string, params: unknown[] = []) => (await owner.query(sql, params)).rows;
   const today = async () => (await rows(`select today::text from public.sim_clock`))[0].today as string;
@@ -154,6 +168,7 @@ describe.skipIf(!READY)("server functions (test project)", () => {
         ["choose-schedule", "ops", { caseId: caseOf("L-1041"), label: "Balanced" }],
         ["update-controls", "ops", { action: "set_kill_switch", on: true }],
         ["update-controls", "lender", { action: "withdraw_consent", caseId: caseOf("L-1041") }],
+        ["update-controls", "ops", { action: "pay_by_link", caseId: caseOf("L-1041") }],
       ];
       for (const [route, who, body] of refused) {
         expect((await call(route, who, body)).status, `${who} on ${route}`).toBe(403);
@@ -298,8 +313,8 @@ describe.skipIf(!READY)("server functions (test project)", () => {
       await advanceUntil("2026-04-07");
       expect(await merchantRow("L-1041")).toMatchObject({ state: "scheduled", next_date: "2026-04-08", chosen_by: "default" });
 
-      // Through update-controls: ops stands in for the customer until the signed customer link exists.
-      const res = await call("update-controls", "ops", { action: "withdraw_consent", caseId: caseOf("L-1041") });
+      // Through update-controls, from the customer's signed link.
+      const res = await asCustomer(caseOf("L-1041"), "update-controls", { action: "withdraw_consent", caseId: caseOf("L-1041") });
       expect(res).toMatchObject({ status: 200, json: { state: "normal_retries" } });
       expect(await merchantRow("L-1041")).toMatchObject({ state: "normal_retries", next_date: null, public_reason: "Razorpay's original retries apply." });
       expect((await actions("L-1041")).map((a) => a.status)).toEqual(["cancelled", "cancelled"]);
@@ -373,7 +388,7 @@ describe.skipIf(!READY)("server functions (test project)", () => {
       await inject("L-1041");
       await call("update-controls", "lender", { action: "set_limits", productId: "p-northfield-personal-loan", lastAllowedDay: 12, maxRepresentations: 3 });
       await call("update-controls", "lender", { action: "set_fix_mode", fixType: "send_reregistration_link", mode: "automatic" });
-      await call("update-controls", "ops", { action: "withdraw_consent", caseId: caseOf("L-1041") });
+      await asCustomer(caseOf("L-1041"), "update-controls", { action: "withdraw_consent", caseId: caseOf("L-1041") });
       await call("update-controls", "lender", { action: "set_kill_switch", on: true });
       await advanceUntil("2026-04-04");
 
@@ -389,6 +404,86 @@ describe.skipIf(!READY)("server functions (test project)", () => {
         { mode: "needs_approval" },
       ]);
       expect(await rows(`select status from public.consents where party = 'customer' and customer_id = 'C-S02'`)).toEqual([{ status: "granted" }]);
+    }, 120_000);
+  });
+
+  describe("the customer's signed link (phone mock)", () => {
+    it("shows only the listed fields, and acts on that one case alone", async () => {
+      await reset();
+      await inject("L-1041");
+      await inject("L-1043");
+      await advanceUntil("2026-04-07");
+
+      const view = await asCustomer(caseOf("L-1041"), "customer-case");
+      expect(view.status, JSON.stringify(view.json)).toBe(200);
+      expect(Object.keys(view.json).sort()).toEqual(
+        ["amountPaise", "caseId", "consent", "customer", "dueDate", "kind", "merchant", "message", "paidDate", "status"],
+      );
+      expect(view.json).toMatchObject({ caseId: caseOf("L-1041"), status: "planned", consent: "granted", amountPaise: 1200000 });
+      expect(view.json.message).toContain("8 April");
+      expect(String(view.json.message)).not.toMatch(/salary|payday|income|employer|wage|balance/i);
+
+      // A link reaches its own case only. Another case answers "not found"; a forged link is refused.
+      const other = await asCustomer(caseOf("L-1041"), "update-controls", { action: "pay_by_link", caseId: caseOf("L-1043") });
+      expect(other).toMatchObject({ status: 404, json: { error: "case_not_found" } });
+      const forged = `${customerToken(caseOf("L-1041")).slice(0, -4)}AAAA`;
+      expect((await call("customer-case", null, { customerToken: forged })).status).toBe(401);
+      expect((await call("update-controls", null, { action: "pay_by_link", caseId: caseOf("L-1041"), customerToken: "v1.x.y" })).status).toBe(401);
+      expect(await merchantRow("L-1043")).toMatchObject({ state: "awaiting_choice" });
+
+      const paid = await asCustomer(caseOf("L-1041"), "update-controls", { action: "pay_by_link", caseId: caseOf("L-1041") });
+      expect(paid).toMatchObject({ status: 200, json: { state: "paid" } });
+      expect(await merchantRow("L-1041")).toMatchObject({ state: "paid", paid_via: "link", paid_date: "2026-04-07" });
+      expect(await rows(`select actor from public.audit_log where decision = 'paid_outside_plan'`)).toEqual([{ actor: `customer:${caseOf("L-1041")}` }]);
+      // The link is a credential: it never reaches the audit log.
+      expect(await rows(`select id from public.audit_log where inputs::text like '%customerToken%' or inputs::text like '%v1.%'`)).toEqual([]);
+    }, 120_000);
+  });
+
+  describe("the screens' login cookie", () => {
+    /** Signs in the way the login page does, and returns the Cookie header the browser would send. */
+    async function cookieFor(who: Who): Promise<string> {
+      const jar = new Map<string, string>();
+      const client = createServerClient(env.TEST_SUPABASE_URL!, env.TEST_SUPABASE_PUBLISHABLE_KEY!, {
+        cookies: {
+          getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+          setAll: (list) => list.forEach(({ name, value }) => (value ? jar.set(name, value) : jar.delete(name))),
+        },
+      });
+      const user = DEMO_USERS.find((u) => u.key === who)!;
+      const { error } = await client.auth.signInWithPassword({ email: user.email, password: demoPassword(user) });
+      if (error) throw new Error(`Could not sign in as the ${who}: ${error.message}`);
+      return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join("; ");
+    }
+
+    async function withCookie(route: RouteName, cookie: string, origin: string | null, body: unknown) {
+      const headers: Record<string, string> = { "content-type": "application/json", cookie };
+      if (origin) headers.origin = origin;
+      const response = await ROUTES[route](new Request(`http://localhost/api/${route}`, { method: "POST", headers, body: JSON.stringify(body) }));
+      return { status: response.status, json: (await response.json()) as Record<string, unknown> };
+    }
+
+    it("works from this site's own pages, and is refused from another site without an audit row", async () => {
+      await reset();
+      await inject("L-1041");
+      const cookie = await cookieFor("lender");
+      const before = await rows(`select count(*)::int as n from public.audit_log`);
+
+      const foreign = await withCookie("choose-schedule", cookie, "https://elsewhere.example", { caseId: caseOf("L-1041"), label: "Safest" });
+      expect(foreign).toMatchObject({ status: 403, json: { error: "cross_site" } });
+      const noOrigin = await withCookie("choose-schedule", cookie, null, { caseId: caseOf("L-1041"), label: "Safest" });
+      expect(noOrigin).toMatchObject({ status: 403, json: { error: "cross_site" } });
+      expect(await rows(`select count(*)::int as n from public.audit_log`)).toEqual(before);
+      expect(await merchantRow("L-1041")).toMatchObject({ state: "awaiting_choice", chosen_schedule: null });
+
+      const own = await withCookie("choose-schedule", cookie, "http://localhost", { caseId: caseOf("L-1041"), label: "Safest" });
+      expect(own).toMatchObject({ status: 200, json: { chosen: "Safest" } });
+      expect(await merchantRow("L-1041")).toMatchObject({ chosen_schedule: "Safest", chosen_by: "merchant" });
+
+      // The role still comes from profiles: the lender's cookie cannot move the clock.
+      expect((await withCookie("advance-day", cookie, "http://localhost", {})).status).toBe(403);
+      // A cookie that is not a login is refused.
+      expect((await withCookie("advance-day", "sb-x-auth-token=nonsense", "http://localhost", {})).status).toBe(401);
     }, 120_000);
   });
 

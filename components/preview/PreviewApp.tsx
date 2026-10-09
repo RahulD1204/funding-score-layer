@@ -12,7 +12,7 @@ import { advanceDay, pickSchedule, recordOutsidePayment, stopLayer, type SimCase
 import type { PreparedCase } from "@/lib/demo/prepare";
 import type { Tone } from "@/lib/demo/words";
 import CaseDetail, { caseChip, type Role } from "./CaseDetail";
-import { Button, Chip } from "./ui";
+import { Button, Chip } from "@/components/ui";
 
 const ROLES: { id: Role; label: string; who: string }[] = [
   { id: "lender", label: "Lender", who: "Northfield Finance, collections" },

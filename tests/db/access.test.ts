@@ -385,4 +385,17 @@ describe.skipIf(!READY)("database access rules (test project)", () => {
     }
     expect(open).toEqual([]);
   });
+
+  it("demo_today gives every logged-in user the simulated date and nothing else; without a login it is refused", async () => {
+    const [{ today }] = await ownerRows(`select today::text from public.sim_clock`);
+    for (const who of ["lender", "insurer", "ops", "second lender"] as Who[]) {
+      const { data, error } = await users.get(who)!.rpc("demo_today");
+      expect(error, who).toBeNull();
+      expect(data, who).toBe(today);
+    }
+    const anon = newClient(env.TEST_SUPABASE_PUBLISHABLE_KEY!);
+    expect((await anon.rpc("demo_today")).error).not.toBeNull();
+    // The table itself stays closed to merchants.
+    expect(readBlocked(await users.get("lender")!.from("sim_clock").select("*"))).toBe(true);
+  });
 });

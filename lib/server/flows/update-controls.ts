@@ -2,9 +2,9 @@
 //
 //   set_limits, set_standing_default, set_fix_mode, set_kill_switch   lender or insurer, own merchant
 //   mark_paid, force_original_retries                                 lender or insurer, own cases
-//   withdraw_consent, pay_by_link                                     the customer's actions. Ops stands in
-//                                                                     until the signed customer link exists
-//                                                                     (decided 10 October 2026, build step 6)
+//   withdraw_consent, pay_by_link                                     the customer only, through the signed
+//                                                                     case link of the phone mock (build step 7;
+//                                                                     ops stood in until then)
 //
 // Settings changes apply to cases opened afterwards; an open case keeps the limits it opened with.
 // The kill switch, consent withdrawal and forced retries call stopLayer; the payments call
@@ -90,7 +90,7 @@ const failedOpen = (caseId: string): FlowResult => ({
 
 export async function updateControls({ db, caller, body }: FlowContext): Promise<FlowResult> {
   const action = oneOf(body, "action", ACTIONS);
-  if (CUSTOMER_ACTIONS.includes(action) !== (caller.role === "ops")) {
+  if (CUSTOMER_ACTIONS.includes(action) !== (caller.role === "customer")) {
     throw new HttpError(403, "role_not_allowed", "Your role cannot do this.", { caller });
   }
   const today = await readToday(db);
@@ -154,7 +154,7 @@ export async function updateControls({ db, caller, body }: FlowContext): Promise
       if (!paid.ok) throw new HttpError(409, paid.error, PAYMENT_REFUSED[paid.error], { caseId: rec.id, caller });
       const audit = auditRow(today, caller.actor, "paid_outside_plan", {
         caseId: rec.id,
-        internal: via === "link" ? "The customer paid by link (ops stands in for the customer)." : "The merchant marked the cycle as paid outside the plan.",
+        internal: via === "link" ? "The customer paid by link." : "The merchant marked the cycle as paid outside the plan.",
         inputs: { via },
       });
       if (!(await saveCase(db, rec, paid.case, audit, caller, today))) return failedOpen(rec.id);
@@ -178,7 +178,7 @@ export async function updateControls({ db, caller, body }: FlowContext): Promise
       if (after) {
         const audit = auditRow(today, caller.actor, "plan_stopped", {
           caseId: rec.id,
-          internal: action === "withdraw_consent" ? "The customer withdrew consent (ops stands in for the customer)." : "The merchant forced Razorpay's original retries.",
+          internal: action === "withdraw_consent" ? "The customer withdrew consent." : "The merchant forced Razorpay's original retries.",
         });
         if (!(await saveCase(db, rec, after, audit, caller, today))) return failedOpen(rec.id);
         return { body: { caseId: rec.id, state: after.state } };

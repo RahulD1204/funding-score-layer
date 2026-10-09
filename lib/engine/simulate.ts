@@ -95,10 +95,23 @@ function setActionsFromOption(c: SimCase, option: ScheduleOption): void {
   c.actions = option.attempts.map((a, i) => ({ id: i + 1, kind: a.kind, day: a.day, status: "planned" as const }));
 }
 
+/**
+ * The day an action on `actionDay` locks: the day before its date, which leaves room for the
+ * pre-debit notice. A standing default applies on the lock day of its first action, and a lender
+ * can pick a schedule until the day before that.
+ */
+export function lockDay(actionDay: number): number {
+  return actionDay - 1;
+}
+
+/** The last day a lender can pick a schedule whose first action is on `firstActionDay`. */
+export function lastPickDay(firstActionDay: number): number {
+  return lockDay(firstActionDay) - 1;
+}
+
 function lockDue(c: SimCase): void {
   for (const a of c.actions) {
-    // An action locks when the clock reaches the day before its date, which leaves room for the pre-debit notice.
-    if (a.status === "planned" && a.day - 1 <= c.today) a.status = "locked";
+    if (a.status === "planned" && lockDay(a.day) <= c.today) a.status = "locked";
   }
 }
 
@@ -134,7 +147,7 @@ function applyDefaultIfDue(c: SimCase): void {
   if (!option) return;
   // An insurer never picks, so the default applies at once.
   // For a lender it applies when its first date is about to lock and nobody has picked.
-  if (c.merchantType === "insurer" || option.firstActionDay - 1 <= c.today) applyOption(c, option, "default");
+  if (c.merchantType === "insurer" || lockDay(option.firstActionDay) <= c.today) applyOption(c, option, "default");
 }
 
 export interface OpenCaseInput {
@@ -194,7 +207,7 @@ export function pickSchedule(
   if (current.actions.some((a) => a.status !== "planned")) return { ok: false, error: "locked" };
   const option = resolveOption(current.options, label);
   if (!option) return { ok: false, error: "no_such_schedule" };
-  if (option.firstActionDay - 1 <= current.today) return { ok: false, error: "locked" };
+  if (current.today > lastPickDay(option.firstActionDay)) return { ok: false, error: "locked" };
   const c = clone(current);
   applyOption(c, option, "merchant");
   return { ok: true, case: c };

@@ -8,6 +8,7 @@ import { addDays, formatDate, formatDay, formatRupees } from "@/lib/engine/dates
 import { buildRetryMessage, fillTemplate } from "@/lib/engine/messages";
 import { resolveOption, type ScheduleCard } from "@/lib/engine/schedule";
 import {
+  lastPickDay,
   merchantView,
   outcomeOf,
   pickSchedule,
@@ -26,7 +27,8 @@ import {
   failOpenWords,
   type Tone,
 } from "@/lib/demo/words";
-import { Button, Chip, Fact, Panel } from "./ui";
+import { Button, Chip, Fact, Panel } from "@/components/ui";
+import ScheduleCardView from "@/components/cases/ScheduleCardView";
 
 export type Role = "lender" | "insurer" | "ops";
 
@@ -41,8 +43,6 @@ export interface CaseDetailProps {
   onUseOriginal: () => void;
   onApproveFix: (fix: FixType) => void;
 }
-
-const BAND_TONE: Record<string, Tone> = { High: "paid", Medium: "waiting", Lower: "idle" };
 
 export function caseChip(c: PreparedCase, sim: SimCase | null, approvedFixes: Record<string, boolean>) {
   if (sim) return STATE_WORDS[sim.state];
@@ -138,7 +138,7 @@ function LenderPlan(props: CaseDetailProps & { sim: SimCase }) {
           )}
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             {m.cards.map((card) => (
-              <ScheduleCardView
+              <PreviewCard
                 key={card.label}
                 card={card}
                 c={c}
@@ -208,7 +208,7 @@ function LenderPlan(props: CaseDetailProps & { sim: SimCase }) {
   );
 }
 
-function ScheduleCardView({
+function PreviewCard({
   card,
   c,
   sim,
@@ -224,79 +224,29 @@ function ScheduleCardView({
   onPick: () => void;
 }) {
   const m = c.merchant;
-  const due = m.dueDate;
   const chosen = sim.chosen !== null && card.labels.includes(sim.chosen);
-  const isDefault = card.labels.includes(m.standingDefault);
-  const [main, ...backups] = card.attemptDays;
-  const perDay = m.penalChargePerDayPaise;
-  const originalFirst = m.baselineRetryDays[0];
-
   return (
-    <article
-      className={`flex flex-col rounded-lg border px-3 py-3 ${
-        chosen ? "border-action bg-info-soft/40 ring-1 ring-action" : "border-line bg-white"
-      }`}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-1">
-        <h4 className="font-semibold text-navy">{card.labels.join(" and ")}</h4>
-        <div className="flex gap-1">
-          {chosen && <Chip tone="info">{sim.chosenBy === "default" ? "Applied by default" : "Your pick"}</Chip>}
-          {!chosen && isDefault && <Chip tone="idle">Standing default</Chip>}
-        </div>
-      </div>
-
-      <p className="mt-2 text-xl font-semibold">{formatDay(due, main)}</p>
-      <p className="text-sm text-muted">
-        {backups.length > 0 ? `Backup on ${backups.map((d) => formatDay(due, d)).join(", ")} if needed` : "One attempt, no backup inside your cap"}
-      </p>
-
-      <dl className="mt-3 flex flex-col gap-2 border-t border-line pt-3 text-sm">
-        <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted">Likelihood on first attempt</dt>
-          <dd>
-            <Chip tone={BAND_TONE[card.band] ?? "idle"}>{card.band}</Chip>
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <dt className="text-muted">Days overdue by then</dt>
-          <dd className="font-medium">{card.daysOverdue}</dd>
-        </div>
-        {card.waitingChargePaise !== null && perDay !== null && (
-          <div className="flex items-center justify-between gap-2">
-            <dt className="text-muted">Charges for waiting</dt>
-            <dd className="font-medium">
-              {formatRupees(card.waitingChargePaise)}{" "}
-              <span className="font-normal text-muted">
-                ({card.daysOverdue} × {formatRupees(perDay)})
-              </span>
-            </dd>
-          </div>
-        )}
-        {card.versusOriginal && (
-          <div className="text-muted">
-            Against the original first retry on {formatDay(due, originalFirst)}:{" "}
-            <span className="font-medium text-ink">
-              {card.versusOriginal.daysLater === 0
-                ? "the same day"
-                : `${Math.abs(card.versusOriginal.daysLater)} day${Math.abs(card.versusOriginal.daysLater) === 1 ? "" : "s"} ${card.versusOriginal.daysLater > 0 ? "later" : "earlier"}`}
-              {card.versusOriginal.extraChargePaise !== null && card.versusOriginal.extraChargePaise !== 0 &&
-                `, ${formatRupees(Math.abs(card.versusOriginal.extraChargePaise))} ${card.versusOriginal.extraChargePaise > 0 ? "more" : "less"}`}
+    <ScheduleCardView
+      card={card}
+      dueDate={m.dueDate}
+      penalChargePerDayPaise={m.penalChargePerDayPaise}
+      originalFirstDay={m.baselineRetryDays[0]}
+      chosen={chosen}
+      chosenBy={sim.chosenBy}
+      isDefault={card.labels.includes(m.standingDefault)}
+      footer={
+        showPick && (
+          <>
+            <span className="text-xs text-muted">
+              {canPick ? `Pick by ${formatDay(m.dueDate, lastPickDay(card.attemptDays[0]))}` : chosen ? "Locked in" : "Too close to pick"}
             </span>
-          </div>
-        )}
-      </dl>
-
-      {showPick && (
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
-          <span className="text-xs text-muted">
-            {canPick ? `Pick by ${formatDay(due, card.attemptDays[0] - 2)}` : chosen ? "Locked in" : "Too close to pick"}
-          </span>
-          <Button onClick={onPick} disabled={!canPick || chosen}>
-            {chosen ? "Picked" : "Use this schedule"}
-          </Button>
-        </div>
-      )}
-    </article>
+            <Button onClick={onPick} disabled={!canPick || chosen}>
+              {chosen ? "Picked" : "Use this schedule"}
+            </Button>
+          </>
+        )
+      }
+    />
   );
 }
 
