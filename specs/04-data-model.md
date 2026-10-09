@@ -13,7 +13,7 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 | `products` | id, merchant id, name, segment, rail, last allowed day, max re-presentations, standing default, result delay days, penal charge per day, bounce charge, baseline retry days, grace days | Limits, defaults and the disclosed charges per product |
 | `fix_settings` | merchant id, fix type, mode (`automatic` or `needs_approval`) | The per-fix switch |
 | `merchant_cases` | case id, merchant id, customer label, kind, amount, due date, failure words, state, retries used, retries allowed, chosen schedule, chosen by, next date, next action kind, result due date, paid date, paid via, public reason | The only case data a merchant reads. Mirrors `merchantView` in `lib/engine/simulate.ts` |
-| `schedule_options` | case id, label, merged labels, attempt days, main day, band, attempts, days overdue, waiting charge, days later than original, extra charge, chosen flag | The cards, for lenders only. Mirrors `ScheduleCard` |
+| `schedule_options` | case id, merchant id, label, merged labels, attempt days, main day, band, attempts, days overdue, waiting charge, days later than original, extra charge, chosen flag | The cards, for lenders only. Mirrors `ScheduleCard` |
 | `desk_items` | id, merchant id, case id, trigger, fix type, reason, mode, status (`proposed`, `approved`, `done`, `rejected`), decided by, deadline | The exceptions desk queue |
 
 ## Internal (14)

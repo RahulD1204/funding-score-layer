@@ -26,7 +26,8 @@ If code and spec disagree, stop and ask. Do not guess.
 - `lib/engine/`: every rule, as pure functions, with golden cases in `tests/`.
 - `components/preview/` and `lib/demo/`: the home page preview, which plays fixed demo cases through the real engine with no database.
 - `ml/`: synthetic data, the median-day baseline, the XGBoost models and the model card. Exports CSV files to `ml/export/`. See `ml/README.md`.
-- Not built yet: the database, server functions, login, the real screens, the agents.
+- `supabase/migrations/`: the 26 tables and their access rules. `scripts/`: the migration runner and the seed, which loads `ml/export/` and creates the three demo users. `tests/db/`: access tests against the test Supabase project. Applied to the test project only so far.
+- Not built yet: server functions, login screens, the real screens, the agents.
 
 ## Hard rules
 
@@ -50,7 +51,9 @@ If code and spec disagree, stop and ask. Do not guess.
 
 ## Commands
 
-- `npm test`: all golden cases
+- `npm test`: all golden cases, plus the database tests when the test project's variables are set
+- `npm run test:db`: only the database tests
+- `npm run db:migrate` and `npm run db:seed`: the test project. Add `-- --target demo` for the demo project
 - `npm run typecheck`
 - `npm run lint`
 - `npm run build`

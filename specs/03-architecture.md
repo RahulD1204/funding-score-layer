@@ -97,6 +97,8 @@ All time logic reads `sim_clock.today`. Nothing reads the real date.
 | `CLAUDE_MODEL_FAST`, `CLAUDE_MODEL_SMART` | Server only | Model names for triage and polish, and for the desk and the Ops assistant. Check the current names in Anthropic's documentation |
 | `DEMO_LENDER_PASSWORD`, `DEMO_INSURER_PASSWORD`, `DEMO_OPS_PASSWORD` | Seed script | Never printed, never committed |
 | `TEST_SUPABASE_URL`, `TEST_SUPABASE_SECRET_KEY` | Tests | The second Supabase project |
+| `TEST_SUPABASE_PUBLISHABLE_KEY` | Tests | The test project's public key. The access tests sign in with it, as a browser would |
+| `TEST_SUPABASE_DB_URL` | Migrations, seed, tests | The test project's database connection string (Session pooler). Local `.env.local` only |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Optional | Test keys only |
 
 ## Framework note
