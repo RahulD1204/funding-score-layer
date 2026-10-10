@@ -172,8 +172,8 @@ describe.skipIf(!READY)("database access rules (test project)", () => {
     await owner.query(`insert into public.triage_results (event_id, label, decided_by) values ($1, 'balance', 'rule')`, [EVENT]);
     await owner.query(`insert into public.plan_actions (case_id, action_number, kind, day, status) values ($1, 1, 'attempt', 6, 'planned')`, [LENDER_CASE]);
     await owner.query(
-      `insert into public.messages (case_id, audience, channel, body, source, template_version)
-       values ($1, 'customer', 'sms', 'Test message', 'template', 'test')`,
+      `insert into public.messages (case_id, audience, channel, body, source, template_version, clock_date)
+       values ($1, 'customer', 'sms', 'Test message', 'template', 'test', '2026-04-02')`,
       [LENDER_CASE],
     );
     await owner.query(`insert into public.prompts (name, version, text) values ('test-access', 'v1', 'Test prompt')`);

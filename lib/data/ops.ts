@@ -98,6 +98,16 @@ export interface AuditRow {
   model_version: string | null;
 }
 
+export interface MessageRow {
+  id: number;
+  clock_date: string;
+  channel: string;
+  body: string;
+  source: "template" | "polished";
+  template_version: string;
+  facts: { type?: "retry" | "link"; planned_date?: string | null; polish?: { status: string; problems: string[] } | null } | null;
+}
+
 export interface OpsCaseDetail {
   rec: OpsCaseRow & { policy_version: string; standing_default: string | null; limits_snapshot: Record<string, unknown> | null; sim_snapshot: SimCase | null; prediction_id: number | null };
   actions: PlanActionRow[];
@@ -106,6 +116,7 @@ export interface OpsCaseDetail {
   audit: AuditRow[];
   merchantRow: MerchantCaseRow | null;
   options: ScheduleOptionRow[];
+  messages: MessageRow[];
   prediction: { source: string; model_version: string } | null;
 }
 
@@ -119,7 +130,7 @@ export async function getCase(caseId: string): Promise<OpsCaseDetail | null> {
       .maybeSingle(),
   ) as unknown as OpsCaseDetail["rec"] | null;
   if (!rec) return null;
-  const [actions, events, audit, merchantRow, options, prediction] = await Promise.all([
+  const [actions, events, audit, merchantRow, options, messages, prediction] = await Promise.all([
     supabase.from("plan_actions").select("action_number, kind, day, status, result_due_day, executed_date").eq("case_id", caseId).order("action_number").then(must),
     supabase
       .from("debit_events")
@@ -131,6 +142,7 @@ export async function getCase(caseId: string): Promise<OpsCaseDetail | null> {
     supabase.from("audit_log").select("*").eq("case_id", caseId).order("id").then(must),
     supabase.from("merchant_cases").select("*").eq("case_id", caseId).maybeSingle().then(must),
     supabase.from("schedule_options").select("*").eq("case_id", caseId).order("main_day").then(must),
+    supabase.from("messages").select("id, clock_date, channel, body, source, template_version, facts").eq("case_id", caseId).order("id").then(must),
     rec.prediction_id === null
       ? Promise.resolve(null)
       : supabase.from("predictions").select("source, model_version").eq("id", rec.prediction_id).maybeSingle().then(must),
@@ -146,6 +158,7 @@ export async function getCase(caseId: string): Promise<OpsCaseDetail | null> {
     audit: audit as AuditRow[],
     merchantRow: merchantRow as MerchantCaseRow | null,
     options: options as ScheduleOptionRow[],
+    messages: messages as MessageRow[],
     prediction: prediction as OpsCaseDetail["prediction"],
   };
 }

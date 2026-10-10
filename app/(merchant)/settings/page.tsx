@@ -73,14 +73,21 @@ async function Settings() {
             {merchant.consent_date ? `Recorded on ${formatDate(merchant.consent_date)} ${merchant.consent_date.slice(0, 4)}` : "Not recorded"}
           </Fact>
           <Fact label="Message polish">
-            {merchant.polish_on ? "On" : "Off"}{" "}
-            <span className="font-normal text-muted">(the switch arrives with message text, build step 9)</span>
+            {merchant.polish_on ? "On: Claude rewords retry messages" : "Off: template text"}
           </Fact>
           <Fact label="Kill switch">
             {merchant.kill_switch ? <Chip tone="failed">On: Razorpay&apos;s original retries everywhere</Chip> : <Chip tone="paid">Off</Chip>}
           </Fact>
         </dl>
-        <div className="mt-3">
+        <p className="mt-3 max-w-prose text-xs text-muted">
+          Polish asks Claude to reword a retry message. The rewrite is used only if it keeps the amount, every date and
+          your name, adds nothing and never mentions pay or income. Otherwise the template is sent. Payment-link messages
+          always use the template.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <ActionButton route="update-controls" body={{ action: "set_polish", on: !merchant.polish_on }} variant="secondary">
+            {merchant.polish_on ? "Turn message polish off" : "Turn message polish on"}
+          </ActionButton>
           {merchant.kill_switch ? (
             <ActionButton route="update-controls" body={{ action: "set_kill_switch", on: false }} variant="secondary">
               Turn the kill switch off

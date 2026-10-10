@@ -62,6 +62,7 @@ These run the case state machine with a simulated clock and ground truth.
 | P1 to P9 | One failed debit end to end: schedules, tier C, low confidence, catch-all codes with and without an agent answer, exceptions desk, control checks, out of reach, insurance, a model score |
 | D1 to D4 | Fix catalogue, modes from merchant settings, rejections, rule-based fallback |
 | M1 to M5 | Templates, polish accepted and rejected, banned words, formats |
+| M6 | A retry notice when a debit locks or a locked debit moves; the link text when a link is sent; nothing for planned, cancelled or dropped debits |
 
 ### Demo cases, `tests/demo-cases.test.ts`
 
@@ -75,7 +76,7 @@ The nine preview cases end to end, plus a check that the merchant-facing part of
 | Database | Signed in as each merchant: internal and system tables are unreadable; the insurer cannot read `schedule_options`; a second lender sees none of the first's rows; a user cannot change their role; `audit_log` cannot be updated or deleted | Prompt 5 |
 | Server functions | The same event id twice gives one case and one audit entry. Seeded cases 2 to 5, 9 and 10 play through `process-debit-event`, `choose-schedule` and `advance-day` to the endings in `05-data-and-model.md`. Consent withdrawn or kill switch mid-plan resumes original retries. A call without a login is refused | Prompt 6 |
 | Agents | With the model mocked: a weak triage answer fails open; an unlisted fix is rejected; a customer-contact fix waits for approval and runs once approved; set to automatic it runs at once; bank text containing "ignore your instructions" changes nothing. Then three live runs per agent, read by hand | Prompt 8 |
-| Messages | 20 filled templates keep their amount and dates and contain no banned word. A failed polish call keeps the template | Prompt 9 |
+| Messages | 20 filled templates keep their amount and dates and contain no banned word. A failed polish call keeps the template (`tests/messages.test.ts`, and through the server functions in `tests/db/messages.test.ts`) | Prompt 9 |
 | Security | Every row of `08-security.md` | Prompt 10 |
 
 Database tests run against the second Supabase project, never the demo one.

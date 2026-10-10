@@ -1,9 +1,9 @@
 // customer-case: what the customer phone mock shows (specs/02 screen 7). Customer link only.
 // Returns the listed fields and nothing else: no score, no estimate, nothing about income.
-// The message is the filled template (buildRetryMessage); build step 9 adds the stored, polished text.
+// The message is the latest one compose-message stored for the case, template or polished.
 
 import "server-only";
-import { addDays, buildRetryMessage, fillTemplate, formatRupees, type ISODate } from "@/lib/engine";
+import { addDays, type ISODate } from "@/lib/engine";
 import type { FlowContext, FlowResult } from "../route";
 import { loadConsents } from "../store";
 import { loadCaseFor } from "./common";
@@ -22,6 +22,13 @@ export interface CustomerCaseView {
   consent: "granted" | "withdrawn";
 }
 
+/** The latest stored message for the case. */
+async function latestMessage(db: FlowContext["db"], caseId: string): Promise<string | null> {
+  const { data, error } = await db.from("messages").select("body").eq("case_id", caseId).order("id", { ascending: false }).limit(1);
+  if (error) throw error;
+  return (data as { body: string }[])[0]?.body ?? null;
+}
+
 export async function customerCase({ db, caller }: FlowContext): Promise<FlowResult> {
   const rec = await loadCaseFor(db, caller.caseId ?? "", caller);
   const ob = rec.obligations;
@@ -37,31 +44,12 @@ export async function customerCase({ db, caller }: FlowContext): Promise<FlowRes
     status = "paid";
     paidDate = addDays(rec.cycle_due_date, sim.paidDay);
   } else if (sim && sim.stopReason === null) {
-    const link = sim.actions.find((a) => a.kind === "link" && a.status === "sent");
-    // A dated message exists once the action has locked, the day before it runs.
-    const next = sim.actions
-      .filter((a) => a.kind !== "link" && (a.status === "locked" || a.status === "in_flight"))
-      .sort((a, b) => b.day - a.day)[0];
-    if (link) {
-      status = "link";
-      message = fillTemplate("payment_link", {
-        kind: ob.kind,
-        amount: formatRupees(ob.amount_paise),
-        merchant: ob.merchants.name,
-        link: "[payment link]",
-      });
-    } else if (next) {
-      status = "planned";
-      const graceDays = ob.products.grace_days;
-      message = buildRetryMessage({
-        segment: ob.products.segment,
-        merchantName: ob.merchants.name,
-        amountPaise: ob.amount_paise,
-        dueDate: rec.cycle_due_date,
-        plannedDate: addDays(rec.cycle_due_date, next.day),
-        graceEnd: graceDays !== null ? addDays(rec.cycle_due_date, graceDays) : undefined,
-      }).text;
-    }
+    const link = sim.actions.some((a) => a.kind === "link" && a.status === "sent");
+    // A dated message exists once a debit has locked, the day before it runs.
+    const planned = sim.actions.some((a) => a.kind !== "link" && (a.status === "locked" || a.status === "in_flight"));
+    if (link) status = "link";
+    else if (planned) status = "planned";
+    if (link || planned) message = await latestMessage(db, rec.id);
   }
 
   const view: CustomerCaseView = {

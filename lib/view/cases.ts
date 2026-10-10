@@ -1,16 +1,8 @@
 // Turning merchant rows into what a screen shows. Display only: every rule comes from lib/engine
-// (lockDay, lastPickDay, buildRetryMessage), so a screen never decides anything for itself.
+// (lockDay, lastPickDay), so a screen never decides anything for itself. The customer message is the
+// one compose-message stored (lib/server/flows/compose-message.ts).
 
-import {
-  addDays,
-  buildRetryMessage,
-  diffDays,
-  fillTemplate,
-  formatRupees,
-  lastPickDay,
-  lockDay,
-  type ScheduleCard,
-} from "@/lib/engine";
+import { addDays, diffDays, lastPickDay, lockDay, type ScheduleCard } from "@/lib/engine";
 import { STATE_WORDS, type Tone } from "@/lib/demo/words";
 import type { MerchantCaseRow, ProductRow, ScheduleOptionRow } from "@/lib/data/rows";
 
@@ -73,36 +65,11 @@ export function endOfCover(dueDate: string, product: Pick<ProductRow, "grace_day
   return product?.grace_days == null ? null : addDays(dueDate, product.grace_days);
 }
 
-/**
- * The customer message for the row, once it exists: a payment link once sent, or a retry
- * message once the next date has locked. Filled from the template by the engine.
- * Build step 9 stores and shows the composed message instead.
- */
-export function customerMessage(
-  row: MerchantCaseRow,
-  merchantName: string,
-  product: ProductRow | null,
-  today: string,
-): string | null {
-  if (row.state === "link_sent") {
-    return fillTemplate("payment_link", {
-      kind: row.kind,
-      amount: formatRupees(row.amount_paise),
-      merchant: merchantName,
-      link: "[payment link]",
-    });
-  }
-  if (!row.next_date || row.next_action_kind === "link" || !hasLocked(row.due_date, row.next_date, today)) return null;
-  if (row.state === "paid" || row.state === "failed" || row.state === "normal_retries" || row.state === "needs_action") return null;
-  const graceEnd = endOfCover(row.due_date, product);
-  return buildRetryMessage({
-    segment: row.kind === "EMI" ? "lending" : "insurance",
-    merchantName,
-    amountPaise: row.amount_paise,
-    dueDate: row.due_date,
-    plannedDate: row.next_date,
-    graceEnd: graceEnd ?? undefined,
-  }).text;
+/** Where the stored customer message's wording came from, in the merchant's words. */
+export function messageSourceWords(row: Pick<MerchantCaseRow, "customer_message_source">): string | null {
+  if (row.customer_message_source === "polished") return "Polished wording";
+  if (row.customer_message_source === "template") return "Template text";
+  return null;
 }
 
 /** Failed retries so far: every presented debit failed except a debit that collected. */

@@ -3,8 +3,8 @@
 
 import { describe, expect, it } from "vitest";
 import { lastPickDay, lockDay } from "@/lib/engine";
-import type { MerchantCaseRow, ProductRow, ScheduleOptionRow } from "@/lib/data/rows";
-import { cardFromRow, customerMessage, defaultAppliesOn, failedRetries, hasLocked, pickWindow, queueSummary } from "@/lib/view/cases";
+import type { MerchantCaseRow, ScheduleOptionRow } from "@/lib/data/rows";
+import { cardFromRow, defaultAppliesOn, failedRetries, hasLocked, messageSourceWords, pickWindow, queueSummary } from "@/lib/view/cases";
 
 process.env.CUSTOMER_LINK_SECRET = "test-only-secret-for-the-unit-tests-0123456789";
 const { caseIdFromToken, customerToken } = await import("@/lib/server/customer-link");
@@ -32,6 +32,9 @@ function row(over: Partial<MerchantCaseRow> = {}): MerchantCaseRow {
     paid_date: null,
     paid_via: null,
     public_reason: "Suggested from payment timing. Advice only.",
+    customer_message: null,
+    customer_message_date: null,
+    customer_message_source: null,
     updated_at: "",
     ...over,
   };
@@ -55,22 +58,6 @@ const OPTION_ROWS: ScheduleOptionRow[] = [
   chosen: false,
 })) as ScheduleOptionRow[];
 const [EARLIEST, BALANCED, SAFEST] = OPTION_ROWS.map(cardFromRow);
-
-const INSURANCE: ProductRow = {
-  id: "p-harbour-term-plan",
-  merchant_id: "m-harbour",
-  name: "Term plan",
-  segment: "insurance",
-  rail: "upi_autopay",
-  last_allowed_day: 12,
-  max_representations: 3,
-  standing_default: "Balanced",
-  result_delay_days: 0,
-  penal_charge_per_day_paise: null,
-  bounce_charge_paise: null,
-  baseline_retry_days: [1, 2, 3],
-  grace_days: 15,
-};
 
 describe("schedule cards from merchant rows", () => {
   it("carry the same fields as the engine's ScheduleCard, and no likelihood number", () => {
@@ -118,21 +105,11 @@ describe("pick and lock dates come from the engine's rules", () => {
 });
 
 describe("the customer message on a case screen", () => {
-  it("appears only once the next date has locked, with every fact from the template", () => {
-    const scheduled = row({ state: "scheduled", chosen_schedule: "Balanced", next_date: "2026-04-08", next_action_kind: "attempt" });
-    expect(customerMessage(scheduled, "Northfield Finance", null, "2026-04-06")).toBeNull();
-    expect(customerMessage(scheduled, "Northfield Finance", null, "2026-04-07")).toBe(
-      "Your EMI of Rs 12,000 to Northfield Finance didn't go through on 2 April. We'll try again on 8 April.",
-    );
-  });
-
-  it("an insurer's message carries the end of cover, and a sent link gets the link text", () => {
-    const premium = row({ kind: "premium", amount_paise: 250_000, state: "scheduled", next_date: "2026-04-03", next_action_kind: "probe" });
-    expect(customerMessage(premium, "Harbour Life", INSURANCE, "2026-04-02")).toBe(
-      "Your premium of Rs 2,500 to Harbour Life didn't go through on 2 April. We'll try again on 3 April. Your cover continues until 17 April.",
-    );
-    expect(customerMessage(row({ state: "link_sent" }), "Northfield Finance", null, "2026-04-22")).toContain("[payment link]");
-    expect(customerMessage(row({ state: "normal_retries", next_date: null }), "Northfield Finance", null, "2026-04-07")).toBeNull();
+  // The text itself is the stored message (compose-message); the screen only names its source.
+  it("names where the wording came from", () => {
+    expect(messageSourceWords(row({ customer_message_source: "template" }))).toBe("Template text");
+    expect(messageSourceWords(row({ customer_message_source: "polished" }))).toBe("Polished wording");
+    expect(messageSourceWords(row())).toBeNull();
   });
 });
 

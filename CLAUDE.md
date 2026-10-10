@@ -30,7 +30,7 @@ If code and spec disagree, stop and ask. Do not guess.
 - `app/api/` and `lib/server/`: the five server functions (process-debit-event, choose-schedule, advance-day, update-controls, reset-demo), with login and role checks, storage and fail-open. `tests/db/flows.test.ts`: flow tests against the test project. Notes in `specs/10-build-plan.md` under step 6.
 - `app/` pages, `components/` and `lib/data/`: the nine screens on live data (step 7). Login by cookie (`proxy.ts`, `lib/supabase/`); pages read with the user's own login. The engine preview is at `/preview`. Notes in `specs/10-build-plan.md` under step 7.
 - `lib/server/agents/`: the three agents (Failure Triage, exceptions desk, Ops assistant), their read-only tools and prompts. Routes `run-exceptions-desk`, `approve-fixes`, `ask-ops-assistant`. Tests with the model mocked in `tests/agents.test.ts` and `tests/db/agents.test.ts`. Notes in `specs/10-build-plan.md` under step 8.
-- Not built yet: message text.
+- `lib/server/flows/compose-message.ts` and `lib/server/polish.ts`: customer message text. The template is filled when a debit locks or a link is sent, polished by Claude only if the merchant's switch is on and `validatePolish` passes, and stored with the merchant's copy. Tests with the model mocked in `tests/messages.test.ts` and `tests/db/messages.test.ts`. Notes in `specs/10-build-plan.md` under step 9.
 
 ## Hard rules
 

@@ -1,9 +1,11 @@
 // Message and reason text.
 // Templates carry every fact. Claude may polish the wording of a customer message,
 // and the checks here reject any rewrite that changes a fact or hints at income.
-// In the app these templates live in the prompts table; this file is the seed and the test fixture.
+// The templates stay in code, so every fact comes from code; each stored message carries
+// TEMPLATE_VERSION. The polish instructions live in the prompts table (lib/server/agents/prompts.ts).
 
 import { formatDate, formatRupees, type ISODate } from "./dates";
+import type { SimCase } from "./simulate";
 
 export const TEMPLATE_VERSION = "t1";
 
@@ -64,6 +66,47 @@ export function buildRetryMessage(input: RetryMessageInput): BuiltMessage {
     text: fillTemplate("lending_retry", { amount, merchant: input.merchantName, dueDate, plannedDate }),
     facts: { amount, dates: [dueDate, plannedDate], merchant: input.merchantName },
   };
+}
+
+export interface LinkMessageInput {
+  kind: "EMI" | "premium";
+  merchantName: string;
+  amountPaise: number;
+  link: string;
+}
+
+/** The payment-link text. It is never polished: validatePolish does not check the link itself. */
+export function buildLinkMessage(input: LinkMessageInput): BuiltMessage {
+  const amount = formatRupees(input.amountPaise);
+  return {
+    text: fillTemplate("payment_link", { kind: input.kind, amount, merchant: input.merchantName, link: input.link }),
+    facts: { amount, dates: [], merchant: input.merchantName },
+  };
+}
+
+/** A customer message the case now needs: a retry notice for a debit, or the text of a sent link. */
+export type MessageDue = { type: "retry"; actionId: number; day: number } | { type: "link"; actionId: number };
+
+/**
+ * The customer messages a change to a case calls for (specs/06 section 7, "Lock"). Compares the
+ * case before and after: a debit that locked, or a locked debit held to a new date, needs a retry
+ * notice for its date; a link that was sent needs the link text. `before` is null for a new case.
+ */
+export function messagesDue(before: SimCase | null, after: SimCase): MessageDue[] {
+  const prior = new Map((before?.actions ?? []).map((a) => [a.id, a]));
+  const due: MessageDue[] = [];
+  for (const a of after.actions) {
+    const was = prior.get(a.id);
+    if (a.kind === "link") {
+      if (a.status === "sent" && was?.status !== "sent") due.push({ type: "link", actionId: a.id });
+      continue;
+    }
+    // Planned: not locked yet. Cancelled or dropped: it will not run, so there is nothing to announce.
+    if (a.status === "planned" || a.status === "cancelled" || a.status === "dropped") continue;
+    const announced = was !== undefined && was.status !== "planned" && was.day === a.day;
+    if (!announced) due.push({ type: "retry", actionId: a.id, day: a.day });
+  }
+  return due;
 }
 
 const AMOUNT_PATTERN = /(?:Rs\.?|₹|INR)\s?[\d,]+(?:\.\d+)?/gi;

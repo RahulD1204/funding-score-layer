@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { ACTION_KIND_WORDS } from "@/lib/demo/words";
 import { buildCards, formatDate, formatDay, formatRupees } from "@/lib/engine";
 import type { MerchantCaseRow, ProductRow } from "@/lib/data/rows";
-import { customerMessage, endOfCover, failedRetries, stateChip } from "@/lib/view/cases";
+import { endOfCover, failedRetries, messageSourceWords, stateChip } from "@/lib/view/cases";
 import { Chip, Fact, Panel } from "@/components/ui";
 
 export const caseHref = (base: string, caseId: string) => `${base}/${encodeURIComponent(caseId)}`;
@@ -124,22 +124,15 @@ export function PlanPanel({ row, plannedDays }: { row: MerchantCaseRow; plannedD
   );
 }
 
-export function CustomerMessagePanel({
-  row,
-  merchantName,
-  product,
-  today,
-}: {
-  row: MerchantCaseRow;
-  merchantName: string;
-  product: ProductRow | null;
-  today: string;
-}) {
-  const text = customerMessage(row, merchantName, product, today);
+export function CustomerMessagePanel({ row }: { row: MerchantCaseRow }) {
+  const source = messageSourceWords(row);
   return (
-    <Panel title="Message to the customer" aside={<span className="text-xs text-muted">Template text</span>}>
-      {text ? (
-        <p className="max-w-prose rounded-lg bg-canvas px-3 py-2 text-sm">{text}</p>
+    <Panel title="Message to the customer" aside={source && <span className="text-xs text-muted">{source}</span>}>
+      {row.customer_message ? (
+        <>
+          <p className="max-w-prose rounded-lg bg-canvas px-3 py-2 text-sm">{row.customer_message}</p>
+          {row.customer_message_date && <p className="mt-1 text-xs text-muted">Written on {formatDate(row.customer_message_date)}</p>}
+        </>
       ) : (
         <p className="text-sm text-muted">A message is written when the next date is fixed, the day before it runs.</p>
       )}

@@ -20,7 +20,7 @@ import { POST as resetDemo } from "@/app/api/reset-demo/route";
 import { POST as runExceptionsDesk } from "@/app/api/run-exceptions-desk/route";
 import { POST as updateControls } from "@/app/api/update-controls/route";
 import { NOT_FOUND_ANSWER } from "@/lib/engine";
-import { AGENT_PROMPTS } from "@/lib/server/agents/prompts";
+import { AGENT_PROMPTS, ALL_PROMPTS } from "@/lib/server/agents/prompts";
 
 try {
   process.loadEnvFile(".env.local");
@@ -160,8 +160,8 @@ describe.skipIf(!READY)("agents through the server functions (test project, mode
       userIds.set(user.key, data.user.id);
     }
     const prompts = await rows(`select name, version from public.prompts where active order by name`);
-    expect(prompts, "Run npm run db:seed to load the agent prompts").toEqual(
-      Object.entries(AGENT_PROMPTS)
+    expect(prompts, "Run npm run db:seed to load the prompts").toEqual(
+      Object.entries(ALL_PROMPTS)
         .map(([name, p]) => ({ name, version: p.version }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );

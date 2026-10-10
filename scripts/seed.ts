@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { FIX_CATALOGUE, FIX_TYPES } from "../lib/engine/desk";
-import { AGENT_PROMPTS } from "../lib/server/agents/prompts";
+import { ALL_PROMPTS } from "../lib/server/agents/prompts";
 import { parseCsv } from "./csv";
 import { DB_SSL, DEMO_USERS, SEED_TODAY, demoPassword, loadTarget, targetFromArgs, type TargetConfig } from "./targets";
 
@@ -183,8 +183,8 @@ async function main() {
     await db.query("insert into public.sim_clock (today) values ($1)", [SEED_TODAY]);
     counts.push(["sim_clock", 1]);
 
-    // The agents' system prompts, each active at its current version (specs/07).
-    const promptRows = Object.entries(AGENT_PROMPTS).map(([name, p]) => [name, p.version, p.text, true]);
+    // The agents' system prompts and the polish prompt, each active at its current version (specs/07).
+    const promptRows = Object.entries(ALL_PROMPTS).map(([name, p]) => [name, p.version, p.text, true]);
     await insertRows(db, "prompts", ["name", "version", "text", "active"], promptRows);
     counts.push(["prompts", promptRows.length]);
 

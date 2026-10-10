@@ -12,7 +12,7 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 | `merchants` | id, name, type (`lender` or `insurer`), layer enabled, kill switch, polish on, consent date | Merchant settings and consent |
 | `products` | id, merchant id, name, segment, rail, last allowed day, max re-presentations, standing default, result delay days, penal charge per day, bounce charge, baseline retry days, grace days | Limits, defaults and the disclosed charges per product |
 | `fix_settings` | merchant id, fix type, mode (`automatic` or `needs_approval`) | The per-fix switch |
-| `merchant_cases` | case id, merchant id, customer label, kind, amount, due date, failure words, state, retries used, retries allowed, chosen schedule, chosen by, next date, next action kind, result due date, paid date, paid via, public reason | The only case data a merchant reads. Mirrors `merchantView` in `lib/engine/simulate.ts` |
+| `merchant_cases` | case id, merchant id, customer label, kind, amount, due date, failure words, state, retries used, retries allowed, chosen schedule, chosen by, next date, next action kind, result due date, paid date, paid via, public reason, customer message, its date and its source (`template` or `polished`) | The only case data a merchant reads. Mirrors `merchantView` in `lib/engine/simulate.ts`, plus the merchant's copy of the latest customer message |
 | `schedule_options` | case id, merchant id, label, merged labels, attempt days, main day, band, attempts, days overdue, waiting charge, days later than original, extra charge, chosen flag | The cards, for lenders only. Mirrors `ScheduleCard` |
 | `desk_items` | id, merchant id, case id, trigger, fix type, reason, mode, status (`proposed`, `approved`, `done`, `rejected`), decided by, deadline | The exceptions desk queue |
 
@@ -32,7 +32,7 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 | `cases` | id, obligation id, cycle due date, route, state, fail-open reason, prediction id, policy version, limits snapshot, standing default, state machine snapshot (the `SimCase` as JSON) | One case per failed cycle |
 | `plan_actions` | case id, action number, kind, day, status, result due day, executed date | Attempts and links. A cancelled action keeps its row |
 | `audit_log` | id, time, clock date, actor, case id, decision, internal reason, public reason, inputs, policy version, model version | Every decision. Append-only |
-| `messages` | case id, audience, channel, body, source (`template` or `polished`), template version, facts | Customer text |
+| `messages` | case id, audience, channel, body, source (`template` or `polished`), template version, facts, clock date | Customer text. The clock date is `sim_clock.today` when the message was written |
 | `model_card` | model version, training period, day error for baseline, quantile and AFT, 80% coverage, band calibration, eligible share, chosen model | Evidence for the ops screen |
 
 ## System (5)
@@ -41,7 +41,7 @@ Amounts are whole numbers in paise. Dates are plain dates. "Day" columns count d
 | --- | --- | --- |
 | `sim_clock` | today | The simulated date. One row |
 | `sim_truth` | customer id, obligation id, cycle due date, funded on day, true cause, reason code and bank text returned on the due date | Ground truth. Read only by `advance-day` and the tests |
-| `prompts` | name, version, text, active flag | Agent prompts and message templates in one place |
+| `prompts` | name, version, text, active flag | Agent prompts and the polish prompt. The message templates stay in `lib/engine/messages.ts`, versioned by `TEMPLATE_VERSION` |
 | `llm_runs` | id, time, user id, purpose, agent, prompt version, model, tools called, steps, input fields, output, validation result, tokens, time taken, status | Every model call and agent step, with what the rules did with the answer |
 | `usage` | user id, date, agent runs | The per-user daily limit of 50 agent runs |
 

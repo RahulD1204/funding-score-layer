@@ -22,6 +22,10 @@ export interface MerchantCaseRow {
   paid_date: string | null;
   paid_via: "debit" | "link" | "outside" | null;
   public_reason: string | null;
+  /** The latest customer message, its simulated date, and whether it is template text or polished wording. */
+  customer_message: string | null;
+  customer_message_date: string | null;
+  customer_message_source: "template" | "polished" | null;
   updated_at: string;
 }
 

@@ -17,7 +17,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 6 | Server functions and flow tests | Done | The seeded cases play through the server functions |
 | 7 | Screens on live data | Done | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
 | 8 | Three agents | Done (live runs deferred) | Mocked agent tests pass; three live runs per agent read sensibly |
-| 9 | Message text | To do | The template shows first; the polish tests pass |
+| 9 | Message text | Done (live polish deferred) | The template shows first; the polish tests pass |
 | 10 | Security review | To do | Every row of `08-security.md` is checked and findings are fixed |
 | 11 | README, demo reset, demo script | To do | Reset works; all tests pass; the demo runs in 3 minutes |
 
@@ -57,6 +57,18 @@ Notes from step 8 (decided 10 October 2026):
 - The Ops assistant's citations are checked by `validateOpsAnswer` in `lib/engine/assistant.ts` (golden cases O1 to O3): only rows its own tools returned count.
 - Live runs deferred (decided 10 October 2026): the Anthropic account has no credit yet, so the nine live runs (triage on L-1047, L-1041 and L-1045; desk on L-1046, L-1043 and I-2011; three Ops questions) got "credit balance is too low". Every case failed open or fell back to the rules as designed, and each attempt was logged. Rerun them once the account has credit; until then the deployed agents show their fallbacks.
 - Open for step 10: the desk agent's one-line reason is shown to the merchant as written. Its tools return no score or income, but no word check runs on it yet.
+
+Notes from step 9 (decided 10 October 2026):
+
+- `compose-message` is `lib/server/flows/compose-message.ts`. The engine's `messagesDue` (golden case M6) says which messages a change calls for: a retry notice when a debit locks, or when a locked debit is held to a new date, and the link text when a link is sent. `advance-day` and `process-debit-event` call it after the case is saved: an insurer's standing default can lock the first debit the day the case opens. `choose-schedule` does not, because a pick is allowed only before anything locks. The ops-only route `/api/compose-message` composes a notice a running case is missing (for example after an outage).
+- Polish is `lib/server/polish.ts`: one call through `createMessage` with `modelFor("fast")`, no tools, not the agent runner. It sends the filled template only; the instructions are the `message_polish` prompt (`polish-v1`) in the `prompts` table. `validatePolish` must pass or the template is kept. Every attempt is one `llm_runs` row with purpose `message_polish`; turning polish off makes no call and no row.
+- Polish counts toward the 50 agent runs per user per day (decided 10 October 2026): the cap limits real spending. Over the cap, the template is kept. Messages composed by Next day count against the ops user who clicked it.
+- A payment link's text is always the template: `validatePolish` does not check the link, so a rewrite could break it and still pass. The prototype has no real link; the text says "[payment link]" and the phone mock's Pay button stands in.
+- Migration `20261010000006_messages.sql` adds `messages.clock_date` (the simulated date, since `created_at` is the real time) and the merchant's copy in `merchant_cases` (`customer_message`, `customer_message_date`, `customer_message_source`), because merchants cannot read the internal `messages` table. `store_customer_message` stores the message, the merchant's copy and a `message_composed:<type>` audit row in one transaction. If storing fails, the case fails open: a debit must not run without its notice.
+- The merchant case screens and the phone mock show the stored message; nothing is filled on the fly any more. The ops internal view lists every message with how it was worded (template, polished, or why polish was rejected). The channel is `phone_mock`: nothing is sent.
+- `set_polish` in `update-controls`: lender or insurer, own merchant only, with an audit row. Settings has the on/off button. The seed starts it off for Northfield and on for Harbour (decision record). Reset demo restores it.
+- The templates stay in code (`lib/engine/messages.ts`, `TEMPLATE_VERSION` "t1"), so every fact comes from code. Spec 04 now says so.
+- Live polish deferred: the Anthropic account has no credit, so a live polish call fails and the template is kept, which is the designed fallback. On the demo, Harbour's notices show "Template text" and each attempt has a `model_error` row in `llm_runs`. Try a live run once the account has credit.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

@@ -1,6 +1,7 @@
 // The internal case view (specs/02 screen 8). Ops only. The triage view (label, evidence, rule or
-// agent), the decision and its estimate, the plan's actions, the activity, the audit rows, the
-// customer's signed link, and below them what the merchant sees.
+// agent), the decision and its estimate, the plan's actions, the activity, the customer messages
+// with how each was worded, the audit rows, the customer's signed link, and below them what the
+// merchant sees.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,7 +13,7 @@ import { Chip, Fact, Panel } from "@/components/ui";
 import { ACTION_KIND_WORDS, ACTION_STATUS_WORDS, eventText, failOpenWords } from "@/lib/demo/words";
 import { addDays, formatDate, formatDay, type ActionKind, type ActionStatus } from "@/lib/engine";
 import { listProducts, productFor } from "@/lib/data/merchant";
-import { getCase } from "@/lib/data/ops";
+import { getCase, type MessageRow } from "@/lib/data/ops";
 import { requireViewer } from "@/lib/data/session";
 import { customerToken } from "@/lib/server/customer-link";
 import { cardFromRow } from "@/lib/view/cases";
@@ -25,6 +26,23 @@ const DECISION_WORDS: Record<string, string> = {
   needs_agent: "Fail open: the Triage agent gave no answer",
 };
 
+/** How a stored message was worded: the template, or polish and what validatePolish made of it. */
+function messageNote(m: MessageRow): string {
+  const link = m.facts?.type === "link";
+  const what = link ? "Payment link" : "Retry notice";
+  const polish = m.facts?.polish;
+  const how = link
+    ? "template, a link's text is never polished"
+    : m.source === "polished"
+      ? "polished wording, accepted by validatePolish"
+      : !polish
+        ? "template, polish off"
+        : polish.status === "rejected"
+          ? `template kept, rewrite rejected (${polish.problems.join("; ")})`
+          : `template kept, polish ${polish.status.replaceAll("_", " ")}`;
+  return `${what} · ${how} · template ${m.template_version} · ${m.channel.replaceAll("_", " ")}`;
+}
+
 interface OpenedInputs {
   estimate?: { source: string; h: number; u: number; confidence: number; floor: number; deductions: { affordability: number; drift: number }; salaryRecognized: boolean } | null;
   gate?: { tier: string; failed: string[] } | null;
@@ -35,7 +53,7 @@ async function OpsCase({ params }: { params: Promise<{ caseId: string }> }) {
   const caseId = decodeURIComponent((await params).caseId);
   const [detail, products] = await Promise.all([getCase(caseId), listProducts()]);
   if (!detail) notFound();
-  const { rec, actions, events, triage, audit, merchantRow, options, prediction } = detail;
+  const { rec, actions, events, triage, audit, merchantRow, options, messages, prediction } = detail;
   const due = rec.cycle_due_date;
   const opened = audit.find((a) => a.decision.startsWith("case_opened"));
   const inputs = (opened?.inputs ?? {}) as OpenedInputs;
@@ -147,6 +165,22 @@ async function OpsCase({ params }: { params: Promise<{ caseId: string }> }) {
               <li key={i} className="grid grid-cols-[5.5rem_1fr] gap-2">
                 <span className="whitespace-nowrap text-muted">{formatDay(due, entry.day)}</span>
                 <span>{eventText(entry, due)}</span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
+      )}
+
+      {messages.length > 0 && (
+        <Panel tone="internal" title={`Customer messages (${messages.length})`}>
+          <ol className="flex flex-col gap-2 text-sm">
+            {messages.map((m) => (
+              <li key={m.id} className="grid grid-cols-[5.5rem_1fr] gap-2">
+                <span className="whitespace-nowrap text-muted">{formatDate(m.clock_date)}</span>
+                <span>
+                  <span className="block">{m.body}</span>
+                  <span className="block text-xs text-muted">{messageNote(m)}</span>
+                </span>
               </li>
             ))}
           </ol>

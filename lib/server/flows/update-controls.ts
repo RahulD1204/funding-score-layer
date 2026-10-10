@@ -1,6 +1,7 @@
 // update-controls (specs/03). The merchant's settings, and the actions that end or pause a plan.
 //
-//   set_limits, set_standing_default, set_fix_mode, set_kill_switch   lender or insurer, own merchant
+//   set_limits, set_standing_default, set_fix_mode, set_kill_switch,
+//   set_polish                                                        lender or insurer, own merchant
 //   mark_paid, force_original_retries                                 lender or insurer, own cases
 //   withdraw_consent, pay_by_link                                     the customer only, through the signed
 //                                                                     case link of the phone mock (build step 7;
@@ -34,6 +35,7 @@ const ACTIONS = [
   "set_standing_default",
   "set_fix_mode",
   "set_kill_switch",
+  "set_polish",
   "mark_paid",
   "force_original_retries",
   "withdraw_consent",
@@ -143,6 +145,15 @@ export async function updateControls({ db, caller, body }: FlowContext): Promise
         }
       }
       return { body: { killSwitch: on, cases } };
+    }
+
+    case "set_polish": {
+      // Applies to messages composed from now on. A stored message keeps its wording.
+      const merchantId = merchantOnly(caller);
+      const on = yesNo(body, "on");
+      await db.from("merchants").update({ polish_on: on }).eq("id", merchantId).throwOnError();
+      await settingAudit(`Message polish ${on ? "on" : "off"}.`, { on });
+      return { body: { polish: on } };
     }
 
     case "mark_paid":

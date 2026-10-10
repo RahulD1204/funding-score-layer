@@ -100,7 +100,7 @@ async function LenderCase({ params }: { params: Promise<{ caseId: string }> }) {
       {row.state === "normal_retries" && <OriginalRetriesPanel row={row} product={product} />}
 
       {planRunning && <PlanPanel row={row} plannedDays={chosenCard?.attemptDays ?? null} />}
-      {planRunning && <CustomerMessagePanel row={row} merchantName={merchant.name} product={product} today={today} />}
+      {planRunning && <CustomerMessagePanel row={row} />}
       <OutcomePanel row={row} product={product} />
 
       {acting && (

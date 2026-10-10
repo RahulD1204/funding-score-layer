@@ -34,6 +34,7 @@ export interface MerchantRow {
   type: MerchantType;
   layer_enabled: boolean;
   kill_switch: boolean;
+  polish_on: boolean;
 }
 
 export interface ProductRow {

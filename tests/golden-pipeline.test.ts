@@ -1,21 +1,25 @@
 // Golden cases P1 to P9: one failed debit through the whole decision pipeline,
-// plus D1 to D4 (exceptions desk) and M1 to M5 (messages). See specs/09-testing.md.
+// plus D1 to D4 (exceptions desk) and M1 to M6 (messages). See specs/09-testing.md.
 // Never edit an expected value to make a test pass. Change the spec first.
 
 import { describe, expect, it } from "vitest";
 import {
   POLICY_VERSION,
   allowedFixes,
+  buildLinkMessage,
   buildRetryMessage,
   evaluateFailedDebit,
   fallbackProposals,
   fillTemplate,
   findBannedWords,
   formatRupees,
+  messagesDue,
   resolveMode,
   validateDeskOutput,
   validatePolish,
   type FailedDebitInput,
+  type SimAction,
+  type SimCase,
 } from "@/lib/engine";
 import { AROUND_THE_7TH, CONTROLS_OK, DUE, EMI_PAISE, LENDER_COST, MONTHS_5, observations } from "./fixtures";
 
@@ -404,5 +408,61 @@ describe("M5 formatting", () => {
     expect(() => fillTemplate("payment_link", { kind: "EMI", amount: "Rs 12,000", merchant: "Northfield Finance" })).toThrow(
       /link/,
     );
+  });
+});
+
+describe("M6 a message is composed when a debit locks or a link is sent", () => {
+  const sim = (actions: SimAction[]): SimCase => ({
+    merchantType: "lender",
+    route: "schedules",
+    resultDelayDays: 2,
+    lastAllowedDay: 10,
+    options: [],
+    standingDefault: "Balanced",
+    chosen: "Balanced",
+    chosenBy: "default",
+    state: "scheduled",
+    actions,
+    today: 5,
+    failedAttempts: 0,
+    paidDay: null,
+    paidVia: null,
+    stopReason: null,
+    baselineRemaining: [],
+    log: [],
+  });
+  const debit = (id: number, day: number, status: SimAction["status"]): SimAction => ({ id, kind: id === 1 ? "attempt" : "backup", day, status });
+  const link = (status: SimAction["status"]): SimAction => ({ id: 1, kind: "link", day: 8, status });
+
+  it("a debit that locks needs a retry notice for its date; a planned one needs nothing yet", () => {
+    expect(messagesDue(sim([debit(1, 6, "planned"), debit(2, 9, "planned")]), sim([debit(1, 6, "locked"), debit(2, 9, "planned")]))).toEqual([
+      { type: "retry", actionId: 1, day: 6 },
+    ]);
+    // A new case whose first debit locked the day it opened (an insurer's standing default).
+    expect(messagesDue(null, sim([debit(1, 3, "locked"), debit(2, 9, "planned")]))).toEqual([{ type: "retry", actionId: 1, day: 3 }]);
+    expect(messagesDue(null, sim([debit(1, 6, "planned")]))).toEqual([]);
+  });
+
+  it("a debit already announced needs nothing more, unless it is held to a new date", () => {
+    expect(messagesDue(sim([debit(1, 6, "locked")]), sim([debit(1, 6, "in_flight")]))).toEqual([]);
+    expect(messagesDue(sim([debit(1, 6, "in_flight")]), sim([debit(1, 6, "failed")]))).toEqual([]);
+    expect(messagesDue(sim([debit(1, 6, "locked")]), sim([debit(1, 8, "locked")]))).toEqual([{ type: "retry", actionId: 1, day: 8 }]);
+  });
+
+  it("a cancelled or dropped debit needs no notice", () => {
+    expect(messagesDue(sim([debit(1, 6, "planned")]), sim([debit(1, 6, "cancelled")]))).toEqual([]);
+    expect(messagesDue(sim([debit(1, 6, "locked")]), sim([debit(1, 6, "dropped")]))).toEqual([]);
+  });
+
+  it("a link needs its text once it is sent, and only once", () => {
+    expect(messagesDue(sim([link("planned")]), sim([link("locked")]))).toEqual([]);
+    expect(messagesDue(sim([link("locked")]), sim([link("sent")]))).toEqual([{ type: "link", actionId: 1 }]);
+    expect(messagesDue(sim([link("sent")]), sim([link("sent")]))).toEqual([]);
+  });
+
+  it("the link text keeps the amount and the name, and has no date to keep", () => {
+    const m = buildLinkMessage({ kind: "EMI", merchantName: "Northfield Finance", amountPaise: EMI_PAISE, link: "[payment link]" });
+    expect(m.text).toBe("You can pay your EMI of Rs 12,000 to Northfield Finance here: [payment link]");
+    expect(m.facts).toEqual({ amount: "Rs 12,000", dates: [], merchant: "Northfield Finance" });
   });
 });

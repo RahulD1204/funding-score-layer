@@ -4,7 +4,7 @@
 // gives the mode: automatic fixes run at once, the rest wait for approval on the desk.
 //
 // Running a fix in the prototype marks its desk item done and writes an audit row. Nothing is sent to
-// a customer yet: real delivery is a later phase, and message text comes with build step 9.
+// a customer: real delivery is a later phase, and specs/06 section 9 has no template for these links.
 //
 // deskProposals is called by process-debit-event for a new desk case, and by the ops-only route
 // for an existing desk case that has no desk items (for example after an outage).

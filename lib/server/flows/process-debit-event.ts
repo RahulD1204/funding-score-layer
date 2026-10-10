@@ -2,7 +2,9 @@
 // Stores the event (a repeated id stops here), runs evaluateFailedDebit, and saves the case,
 // its plan, the merchant row, the cards or desk items, the triage row and the audit rows.
 // A catch-all failure asks the Triage agent (build step 8) and runs the engine again with its answer;
-// a desk case asks the desk agent (run-exceptions-desk.ts). Any error fails the case open.
+// a desk case asks the desk agent (run-exceptions-desk.ts). Once the case is saved, any message its
+// plan already calls for is composed: an insurer's standing default can lock the first debit at once.
+// Any error fails the case open.
 
 import "server-only";
 import {
@@ -10,14 +12,16 @@ import {
   diffDays,
   evaluateFailedDebit,
   formatDate,
+  messagesDue,
   openCase,
   addDays,
   type Decision,
+  type SimCase,
 } from "@/lib/engine";
 import { FAILURE_WORDS } from "@/lib/demo/words";
 import { agentRunSummary, askTriageAgent } from "../agents";
 import type { AgentRun } from "../agents/runner";
-import { failOpenNewCase } from "../fail-open";
+import { failOpenExistingCase, failOpenNewCase } from "../fail-open";
 import { HttpError } from "../http-error";
 import type { FlowContext, FlowResult } from "../route";
 import {
@@ -31,6 +35,8 @@ import {
 import {
   appendAudit,
   auditRow,
+  errorText,
+  loadCase,
   loadDebitInput,
   loadObligation,
   readToday,
@@ -39,6 +45,7 @@ import {
   type CaseBundle,
 } from "../store";
 import { isoDate, oneOf, optionalText, text } from "../validate";
+import { composeCaseMessages } from "./compose-message";
 import { deskProposals } from "./run-exceptions-desk";
 
 /** One line for the audit log on what the Triage agent said and what the rules did with it. */
@@ -115,6 +122,8 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
     return { body: { eventId, caseId, ignored: "case_exists" } };
   }
 
+  let opened: SimCase | null = null;
+  let saved = false;
   try {
     const loaded = await loadDebitInput(db, ob, dueDate, reasonCode, limits);
     let decision: Decision = evaluateFailedDebit(loaded.input);
@@ -173,6 +182,7 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
         resultDelayDays: limits.resultDelayDays,
         lastAllowedDay: limits.lastAllowedDay,
       });
+      opened = sim;
       bundle.case.state = sim.state;
       bundle.case.sim_snapshot = sim;
       bundle.merchant_case = merchantRowFromSim(ob, caseId, dueDate, limits, sim, failureWords, decision.publicReason);
@@ -224,8 +234,18 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
     ];
 
     await saveBundle(db, bundle);
-    return { body: { eventId, caseId, route: decision.route, state: bundle.case.state } };
+    saved = true;
+    const composed = opened ? await composeCaseMessages(db, { caseId, ob, dueDate }, messagesDue(null, opened), { userId: caller.userId, today }) : [];
+    return { body: { eventId, caseId, route: decision.route, state: bundle.case.state, messages: composed.length } };
   } catch (error) {
-    return failOpenNewCase(db, ob, eventId, dueDate, caller.actor, today, error);
+    if (!saved) return failOpenNewCase(db, ob, eventId, dueDate, caller.actor, today, error);
+    // The case is saved but its message is not: a debit must not run without its notice.
+    const rec = await loadCase(db, caseId).catch(() => null);
+    if (rec) await failOpenExistingCase(db, rec, caller.actor, today, error);
+    else await appendAudit(db, auditRow(today, caller.actor, "fail_open", { caseId, internal: `Fail open: server_error. ${errorText(error)}` })).catch(() => {});
+    return {
+      status: 500,
+      body: { error: "server_error", failedOpen: true, caseId, message: "Something went wrong. Razorpay's original retries apply." },
+    };
   }
 }

@@ -8,7 +8,7 @@ import ActionButton from "@/components/actions/ActionButton";
 import { CaseHeader, CustomerMessagePanel, OriginalRetriesPanel, OutcomePanel, PlanPanel } from "@/components/cases/live";
 import { PageLoading } from "@/components/shell/AppShell";
 import { Chip, Panel } from "@/components/ui";
-import { demoToday, getCase } from "@/lib/data/merchant";
+import { getCase } from "@/lib/data/merchant";
 import { requireViewer } from "@/lib/data/session";
 
 const ACTING = ["scheduled", "result_pending", "link_sent"];
@@ -16,7 +16,7 @@ const ACTING = ["scheduled", "result_pending", "link_sent"];
 async function InsurerCase({ params }: { params: Promise<{ caseId: string }> }) {
   await requireViewer(["insurer"]);
   const caseId = decodeURIComponent((await params).caseId);
-  const [detail, today] = await Promise.all([getCase(caseId), demoToday()]);
+  const detail = await getCase(caseId);
   if (!detail || detail.row.kind !== "premium") notFound();
   const { row, merchant, product } = detail;
   const acting = ACTING.includes(row.state);
@@ -43,7 +43,7 @@ async function InsurerCase({ params }: { params: Promise<{ caseId: string }> }) 
       )}
       {row.state === "normal_retries" && <OriginalRetriesPanel row={row} product={product} />}
       {planRunning && <PlanPanel row={row} plannedDays={null} />}
-      {planRunning && <CustomerMessagePanel row={row} merchantName={merchant.name} product={product} today={today} />}
+      {planRunning && <CustomerMessagePanel row={row} />}
       <OutcomePanel row={row} product={product} />
       {acting && (
         <div className="flex flex-wrap gap-3">
