@@ -29,7 +29,8 @@ If code and spec disagree, stop and ask. Do not guess.
 - `supabase/migrations/`: the 26 tables and their access rules. `scripts/`: the migration runner and the seed, which loads `ml/export/` and creates the three demo users. `tests/db/`: access tests against the test Supabase project. Applied to both the test and the demo project.
 - `app/api/` and `lib/server/`: the five server functions (process-debit-event, choose-schedule, advance-day, update-controls, reset-demo), with login and role checks, storage and fail-open. `tests/db/flows.test.ts`: flow tests against the test project. Notes in `specs/10-build-plan.md` under step 6.
 - `app/` pages, `components/` and `lib/data/`: the nine screens on live data (step 7). Login by cookie (`proxy.ts`, `lib/supabase/`); pages read with the user's own login. The engine preview is at `/preview`. Notes in `specs/10-build-plan.md` under step 7.
-- Not built yet: the agents, message text.
+- `lib/server/agents/`: the three agents (Failure Triage, exceptions desk, Ops assistant), their read-only tools and prompts. Routes `run-exceptions-desk`, `approve-fixes`, `ask-ops-assistant`. Tests with the model mocked in `tests/agents.test.ts` and `tests/db/agents.test.ts`. Notes in `specs/10-build-plan.md` under step 8.
+- Not built yet: message text.
 
 ## Hard rules
 

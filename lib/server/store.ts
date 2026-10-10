@@ -56,6 +56,7 @@ export interface ObligationRow {
   customer_id: string;
   kind: "EMI" | "premium";
   amount_paise: number;
+  due_day: number;
   mandate_status: MandateStatus;
   bank: string | null;
   products: ProductRow;
@@ -76,6 +77,7 @@ export interface CaseRecord {
   route: string;
   state: string | null;
   fail_open_reason: string | null;
+  policy_version: string;
   limits_snapshot: LimitsSnapshot | null;
   sim_snapshot: SimCase | null;
   updated_at: string;
@@ -399,4 +401,27 @@ export async function loadDebitInput(
     input.modelScore = score;
   }
   return { input, rulePrediction, modelPrediction };
+}
+
+export interface TriageRecord {
+  event_id: string;
+  label: string;
+  decided_by: "rule" | "lookup" | "agent";
+  evidence: string[] | null;
+  agent_strength: string | null;
+}
+
+/** The triage row of the event that opened a case (one case per failed cycle). */
+export async function loadCaseTriage(db: SupabaseClient, obligationId: string, dueDate: ISODate): Promise<TriageRecord | null> {
+  const events = must(
+    await db.from("debit_events").select("event_id").eq("obligation_id", obligationId).eq("cycle_due_date", dueDate),
+  ) as { event_id: string }[];
+  if (events.length === 0) return null;
+  const rows = must(
+    await db
+      .from("triage_results")
+      .select("event_id, label, decided_by, evidence, agent_strength")
+      .in("event_id", events.map((e) => e.event_id)),
+  ) as TriageRecord[];
+  return rows[0] ?? null;
 }

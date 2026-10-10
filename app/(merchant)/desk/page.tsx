@@ -1,12 +1,13 @@
 // Exceptions desk (specs/02 screen 5). Lender and insurer. A Needs action queue sorted by deadline:
 // failure label, proposed fix, reason and mode. Reads desk_items and merchant_cases only.
-// The approve buttons run approve-fixes, which build step 8 adds; until then they are shown off.
+// The approve buttons (components/desk/DeskQueue.tsx) run approve-fixes.
 
 import Link from "next/link";
 import { Suspense } from "react";
 import { caseHref } from "@/components/cases/live";
 import { PageLoading } from "@/components/shell/AppShell";
-import { Button, Chip } from "@/components/ui";
+import DeskQueue, { type DeskQueueRow } from "@/components/desk/DeskQueue";
+import { Chip } from "@/components/ui";
 import { FIX_CATALOGUE, addDays, formatDate, formatRupees } from "@/lib/engine";
 import { listDeskItems, listProducts, productFor } from "@/lib/data/merchant";
 import type { DeskItemRow, ProductRow } from "@/lib/data/rows";
@@ -37,7 +38,6 @@ async function Desk() {
     .map((item) => ({ item, deadline: deadlineOf(item, products) }))
     .sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999") || a.item.id - b.item.id);
   const base = viewer.role === "lender" ? "/lender/cases" : "/insurer/cases";
-  const waiting = rows.filter((r) => r.item.status === "proposed" && r.item.mode === "needs_approval").length;
 
   if (rows.length === 0) {
     return (
@@ -46,6 +46,23 @@ async function Desk() {
       </p>
     );
   }
+
+  const queue: DeskQueueRow[] = rows.map(({ item, deadline }) => {
+    const c = item.merchant_cases;
+    const description = FIX_CATALOGUE[item.fix_type].description;
+    return {
+      id: item.id,
+      caseHref: caseHref(base, item.case_id),
+      customer: c?.customer_label ?? item.case_id,
+      summary: `${c ? `${c.kind === "EMI" ? "EMI" : "Premium"} ${formatRupees(c.amount_paise)} · ` : ""}${c?.failure_words ?? item.trigger.replaceAll("_", " ")}`,
+      fix: description,
+      reason: item.reason !== description ? item.reason : null,
+      mode: item.mode,
+      deadline: deadline ? formatDate(deadline) : null,
+      status: STATUS_WORDS[item.status],
+      waiting: item.status === "proposed" && item.mode === "needs_approval",
+    };
+  });
 
   return (
     <>
@@ -56,45 +73,7 @@ async function Desk() {
         </Link>
         . Fixes that do not contact the customer run by themselves.
       </p>
-      <ul className="flex flex-col gap-2">
-        {rows.map(({ item, deadline }) => {
-          const c = item.merchant_cases;
-          const status = STATUS_WORDS[item.status];
-          return (
-            <li key={item.id} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-line bg-white px-3 py-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <input type="checkbox" disabled aria-label="Select this fix" className="mt-1" />
-                <div className="min-w-0">
-                  <p className="text-sm">
-                    <Link href={caseHref(base, item.case_id)} className="font-medium text-action hover:underline">
-                      {c?.customer_label ?? item.case_id}
-                    </Link>
-                    <span className="text-muted">
-                      {" "}
-                      · {c ? `${c.kind === "EMI" ? "EMI" : "Premium"} ${formatRupees(c.amount_paise)}` : ""} ·{" "}
-                      {c?.failure_words ?? item.trigger.replaceAll("_", " ")}
-                    </span>
-                  </p>
-                  <p className="mt-1 text-sm font-medium">{FIX_CATALOGUE[item.fix_type].description}</p>
-                  {item.reason !== FIX_CATALOGUE[item.fix_type].description && <p className="text-sm text-muted">{item.reason}</p>}
-                  <p className="mt-1 text-xs text-muted">
-                    {item.mode === "automatic" ? "Automatic: does not contact the customer." : "Needs approval: contacts the customer."}
-                    {deadline && ` Deadline ${formatDate(deadline)}.`}
-                  </p>
-                </div>
-              </div>
-              <Chip tone={status.tone}>{status.label}</Chip>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Button disabled>Approve selected</Button>
-        <Button variant="secondary" disabled>
-          Approve all ({waiting})
-        </Button>
-        <span className="text-xs text-muted">Approving fixes arrives with the desk agent in build step 8. Nothing is sent yet.</span>
-      </div>
+      <DeskQueue rows={queue} />
     </>
   );
 }

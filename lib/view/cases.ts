@@ -69,7 +69,7 @@ export function defaultAppliesOn(row: MerchantCaseRow, defaultCard: ScheduleCard
 }
 
 /** The last day of cover for a premium: the due date plus the product's grace days. */
-export function endOfCover(dueDate: string, product: ProductRow | null): string | null {
+export function endOfCover(dueDate: string, product: Pick<ProductRow, "grace_days"> | null): string | null {
   return product?.grace_days == null ? null : addDays(dueDate, product.grace_days);
 }
 

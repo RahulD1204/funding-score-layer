@@ -10,7 +10,7 @@ import { randomBytes } from "node:crypto";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { DB_SSL, DEMO_USERS, demoPassword } from "@/scripts/targets";
 import { POST as advanceDay } from "@/app/api/advance-day/route";
 import { POST as chooseSchedule } from "@/app/api/choose-schedule/route";
@@ -47,6 +47,16 @@ if (READY) {
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
+
+// No flow test calls Claude. Here the model is always unavailable, so the Triage agent gives no
+// answer (the case fails open) and the desk falls back to the rule-based fixes. The agents with
+// answers are tested in tests/db/agents.test.ts.
+vi.mock("@/lib/server/agents/model", () => ({
+  modelFor: (tier: string) => `test-model-${tier}`,
+  createMessage: async () => {
+    throw new Error("No model in the flow tests.");
+  },
+}));
 
 // The customer link's signing key. Any value works for the tests; a fresh one is never printed.
 if (!process.env.CUSTOMER_LINK_SECRET) process.env.CUSTOMER_LINK_SECRET = randomBytes(32).toString("base64url");
@@ -203,7 +213,7 @@ describe.skipIf(!READY)("server functions (test project)", () => {
       expect(await rows(`select id from public.cases where obligation_id = 'L-1041'`)).toHaveLength(1);
     });
 
-    it("a catch-all code with no agent fails open, and a cancelled mandate goes to the desk with the rule-based fixes", async () => {
+    it("a catch-all code with no agent answer fails open, and a cancelled mandate goes to the desk with the rule-based fixes", async () => {
       await reset();
       expect(await inject("L-1047")).toMatchObject({ status: 200, json: { route: "fail_open", state: "normal_retries" } });
       const [c] = await rows(`select fail_open_reason from public.cases where id = $1`, [caseOf("L-1047")]);
@@ -213,7 +223,8 @@ describe.skipIf(!READY)("server functions (test project)", () => {
       expect(await inject("L-1046")).toMatchObject({ status: 200, json: { route: "exceptions_desk", state: "needs_action" } });
       const desk = await rows(`select fix_type, mode, status from public.desk_items where case_id = $1 order by id`, [caseOf("L-1046")]);
       expect(desk).toEqual([
-        { fix_type: "stop_attempts", mode: "automatic", status: "proposed" },
+        // Automatic fixes run at once (build step 8); anything that contacts the customer waits.
+        { fix_type: "stop_attempts", mode: "automatic", status: "done" },
         { fix_type: "send_reregistration_link", mode: "needs_approval", status: "proposed" },
       ]);
     });

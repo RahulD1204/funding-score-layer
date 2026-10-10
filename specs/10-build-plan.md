@@ -16,7 +16,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 5 | Database, access rules and seed | Done | Tables are seeded; the merchant-access tests pass |
 | 6 | Server functions and flow tests | Done | The seeded cases play through the server functions |
 | 7 | Screens on live data | Done | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
-| 8 | Three agents | To do | Mocked agent tests pass; three live runs per agent read sensibly |
+| 8 | Three agents | Done (live runs deferred) | Mocked agent tests pass; three live runs per agent read sensibly |
 | 9 | Message text | To do | The template shows first; the polish tests pass |
 | 10 | Security review | To do | Every row of `08-security.md` is checked and findings are fixed |
 | 11 | README, demo reset, demo script | To do | Reset works; all tests pass; the demo runs in 3 minutes |
@@ -44,6 +44,19 @@ Notes from step 7 (decided 10 October 2026):
 - Pick and lock dates on screen use the engine's `lockDay` and `lastPickDay`, the same functions `pickSchedule` and the clock use.
 - The desk shows its queue; approving fixes waits for `approve-fixes` in step 8. The polish switch is shown, not editable, until step 9. The Ops assistant box is shown, not connected.
 - The engine preview moved to `/preview`. The home page is the login.
+
+Notes from step 8 (decided 10 October 2026):
+
+- The agents are in `lib/server/agents/`: one runner for all three (`runner.ts`), their tools (`tools.ts`), prompts (`prompts.ts`, loaded into the `prompts` table by the seed) and the one file that calls Claude (`model.ts`). Models: `CLAUDE_MODEL_FAST` = `claude-haiku-5-5` (triage), `CLAUDE_MODEL_SMART` = `claude-sonnet-5-5` (desk, Ops assistant). Each answer has a fixed JSON shape; on the fourth model call tools are switched off, so the agent must answer.
+- Triage and desk tools are bound to the one case being handled and take no input, so a model cannot point them at another customer. `get_mandate_status` returns an empty `last_changed`: the data does not record when a mandate status changed.
+- Every model call is one `llm_runs` row; rows of one run share `input_fields.run_id`, and the last row holds what the rules did with the answer.
+- The daily limit of 50 agent runs per user counts against the real date in UTC, not the demo clock, because it caps real spending (`claim_agent_run`, migration `20261010000005_agents.sql`). It is the only thing that reads the real date. Reset demo clears it.
+- Running a desk fix marks its desk item done and writes a `fix_run:<fix>` audit row. Nothing is sent to a customer yet, and the case stays in Needs action: what follows a fix (a new mandate, a downtime ending) is not modelled. Automatic fixes are saved as done with the case; `approve-fixes` runs waiting ones (`run_desk_items`, all or nothing).
+- A payment outside the plan does not call the desk agent. `recordOutsidePayment` already cancels the pending attempt, which is the only fix allowed for that trigger, so the desk covers non-balance failures only.
+- `run-exceptions-desk` is also an ops-only route, for a desk case that has no desk items (for example after an outage). `process-debit-event` runs the same desk for every new desk case.
+- The Ops assistant's citations are checked by `validateOpsAnswer` in `lib/engine/assistant.ts` (golden cases O1 to O3): only rows its own tools returned count.
+- Live runs deferred (decided 10 October 2026): the Anthropic account has no credit yet, so the nine live runs (triage on L-1047, L-1041 and L-1045; desk on L-1046, L-1043 and I-2011; three Ops questions) got "credit balance is too low". Every case failed open or fell back to the rules as designed, and each attempt was logged. Rerun them once the account has credit; until then the deployed agents show their fallbacks.
+- Open for step 10: the desk agent's one-line reason is shown to the merchant as written. Its tools return no score or income, but no word check runs on it yet.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

@@ -1,19 +1,22 @@
 // process-debit-event (specs/03 "Event path", specs/06 section 1). Ops only.
 // Stores the event (a repeated id stops here), runs evaluateFailedDebit, and saves the case,
-// its plan, the merchant row, the cards or desk items, the triage row and one audit row.
+// its plan, the merchant row, the cards or desk items, the triage row and the audit rows.
+// A catch-all failure asks the Triage agent (build step 8) and runs the engine again with its answer;
+// a desk case asks the desk agent (run-exceptions-desk.ts). Any error fails the case open.
 
 import "server-only";
 import {
   POLICY_VERSION,
   diffDays,
   evaluateFailedDebit,
-  fallbackProposals,
   formatDate,
   openCase,
   addDays,
   type Decision,
 } from "@/lib/engine";
 import { FAILURE_WORDS } from "@/lib/demo/words";
+import { agentRunSummary, askTriageAgent } from "../agents";
+import type { AgentRun } from "../agents/runner";
 import { failOpenNewCase } from "../fail-open";
 import { HttpError } from "../http-error";
 import type { FlowContext, FlowResult } from "../route";
@@ -29,17 +32,22 @@ import {
   appendAudit,
   auditRow,
   loadDebitInput,
-  loadFixSettings,
   loadObligation,
   readToday,
   saveBundle,
+  type AuditRow,
   type CaseBundle,
 } from "../store";
 import { isoDate, oneOf, optionalText, text } from "../validate";
+import { deskProposals } from "./run-exceptions-desk";
 
-/** Why the Triage agent's answer is missing, until build step 8 connects it. */
-const AGENT_NOT_CONNECTED =
-  "Triage agent not connected yet (build step 8): with no answer the label is unknown and the case fails open.";
+/** One line for the audit log on what the Triage agent said and what the rules did with it. */
+function triageNote(run: AgentRun, decision: Decision): string {
+  if (run.status !== "answered") return `Triage agent gave no answer (${run.status}): the label is unknown and the case fails open.`;
+  return decision.triage.label === "unknown"
+    ? `Triage agent answer rejected (${decision.triage.evidence.at(-1) ?? "unknown"}): the case fails open.`
+    : `Triage agent answer accepted: ${decision.triage.label}.`;
+}
 
 export async function processDebitEvent({ db, caller, body }: FlowContext): Promise<FlowResult> {
   const eventId = text(body, "eventId", 200);
@@ -111,14 +119,27 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
     const loaded = await loadDebitInput(db, ob, dueDate, reasonCode, limits);
     let decision: Decision = evaluateFailedDebit(loaded.input);
     let agentNote: string | null = null;
+    let triageRun: AgentRun | null = null;
     if (decision.route === "needs_agent") {
-      agentNote = AGENT_NOT_CONNECTED;
-      decision = evaluateFailedDebit({ ...loaded.input, agentTriage: null });
+      // Only a catch-all code with an active mandate and no downtime gets here. The agent's answer goes
+      // back through the engine, which accepts only a strong answer inside the label list.
+      triageRun = await askTriageAgent(db, {
+        userId: caller.userId!,
+        ob,
+        dueDate,
+        reasonCode,
+        bankText,
+        context: { mandateStatus: loaded.input.mandateStatus, downtimeActive: loaded.input.downtimeActive },
+      });
+      decision = evaluateFailedDebit({ ...loaded.input, agentTriage: triageRun.answer });
+      agentNote = triageNote(triageRun, decision);
     }
+    const strength = triageRun?.answer?.strength;
 
     const e = decision.estimate;
     const prediction = e?.source === "model" ? loaded.modelPrediction : loaded.rulePrediction;
     const failureWords = FAILURE_WORDS[decision.triage.label] ?? FAILURE_WORDS.unknown;
+    let deskAudit: AuditRow[] = [];
 
     const bundle: CaseBundle = {
       case: {
@@ -139,7 +160,7 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
         label: decision.triage.label,
         decided_by: decision.triage.decidedBy,
         evidence: decision.triage.evidence,
-        agent_strength: null,
+        agent_strength: strength === "strong" || strength === "weak" ? strength : null,
       },
       event_id: eventId,
     };
@@ -158,18 +179,22 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
       bundle.schedule_options = scheduleOptionRows(ob, caseId, limits, sim);
       bundle.plan_actions = planActionRows(caseId, dueDate, sim);
     } else if (decision.route === "exceptions_desk" && decision.deskTrigger) {
-      // Build step 8 adds the desk agent and runs the fixes. Until then the rule-based fallback proposes them.
-      const proposals = fallbackProposals(decision.deskTrigger, await loadFixSettings(db, ob.merchant_id));
+      // The desk agent proposes, the rules decide; automatic fixes are saved as done, the rest wait.
+      // Everything is saved together with the case below.
+      const desk = await deskProposals(db, caller.userId!, caller.actor, {
+        caseId,
+        ob,
+        dueDate,
+        limits,
+        trigger: decision.deskTrigger,
+        state: "needs_action",
+        attemptsUsed: 0,
+        today,
+      });
       bundle.case.state = "needs_action";
       bundle.merchant_case = merchantRowWithoutPlan(ob, caseId, dueDate, limits, "needs_action", failureWords, decision.publicReason);
-      bundle.desk_items = proposals.map((p) => ({
-        merchant_id: ob.merchant_id,
-        trigger: decision.deskTrigger,
-        fix_type: p.fix,
-        reason: p.reason,
-        mode: p.mode,
-        status: "proposed",
-      }));
+      bundle.desk_items = desk.deskItems;
+      deskAudit = desk.audit;
     } else {
       bundle.case.state = "normal_retries";
       bundle.merchant_case = merchantRowWithoutPlan(ob, caseId, dueDate, limits, "normal_retries", failureWords, decision.publicReason);
@@ -188,12 +213,14 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
           triage: decision.triage,
           failOpenReason: decision.failOpenReason ?? null,
           deskTrigger: decision.deskTrigger ?? null,
+          triageAgent: triageRun ? agentRunSummary(triageRun) : null,
           gate: decision.gate ?? null,
           estimate: e
             ? { source: e.source, h: e.h, u: e.u, confidence: e.confidence, floor: e.floor, deductions: e.deductions, salaryRecognized: e.salaryRecognized }
             : null,
         },
       }),
+      ...deskAudit,
     ];
 
     await saveBundle(db, bundle);

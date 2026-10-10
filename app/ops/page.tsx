@@ -1,12 +1,13 @@
 // Ops console (specs/02 screen 8): the demo clock, Reset demo, the event injector, every case,
-// and the Ops assistant box (connected in build step 8). Ops only.
+// and the Ops assistant box (components/ops/OpsAssistant.tsx). Ops only.
 
 import Link from "next/link";
 import { Suspense } from "react";
 import ActionButton from "@/components/actions/ActionButton";
 import EventInjector, { type InjectorPreset } from "@/components/ops/EventInjector";
+import OpsAssistant from "@/components/ops/OpsAssistant";
 import { PageLoading } from "@/components/shell/AppShell";
-import { Button, Chip, Panel } from "@/components/ui";
+import { Chip, Panel } from "@/components/ui";
 import { DEMO_CASES } from "@/lib/demo/cases";
 import { FAILURE_WORDS, STATE_WORDS, failOpenWords } from "@/lib/demo/words";
 import { CATCH_ALL_REASONS, CLEAR_REASONS, formatDate, type CaseState } from "@/lib/engine";
@@ -106,17 +107,9 @@ async function Console() {
         )}
       </Panel>
 
-      <Panel title="Ops assistant" aside={<Chip tone="idle">Connected in build step 8</Chip>}>
+      <Panel title="Ops assistant" aside={<span className="text-xs text-muted">Reads the audit log only. Counts toward your 50 agent runs a day</span>}>
         <p className="mb-2 text-sm text-muted">Ask why a case went the way it did. Answers come from the audit log and cite the rows used.</p>
-        <div className="flex flex-wrap gap-2">
-          <input
-            disabled
-            placeholder="Why did L-1041 retry on 8 April?"
-            aria-label="Question for the Ops assistant"
-            className="min-w-0 flex-1 rounded-lg border border-line bg-canvas px-3 py-1.5 text-sm"
-          />
-          <Button disabled>Ask</Button>
-        </div>
+        <OpsAssistant />
       </Panel>
     </div>
   );

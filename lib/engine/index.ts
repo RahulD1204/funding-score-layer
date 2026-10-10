@@ -8,6 +8,7 @@ export * from "./estimate";
 export * from "./schedule";
 export * from "./triage";
 export * from "./desk";
+export * from "./assistant";
 export * from "./messages";
 export * from "./simulate";
 export * from "./pipeline";
