@@ -109,6 +109,22 @@ def method_metrics(name: str, cdf: np.ndarray, ev: pd.DataFrame) -> dict:
     }
 
 
+def by_archetype(ev: pd.DataFrame, curves_by_method: dict[str, np.ndarray]) -> list[dict]:
+    """Day error for each customer type (specs/08-security.md row 18: one group must not get
+    systematically worse suggestions). The archetype is never a model input; it is used here only to check."""
+    out = []
+    points = {name: point_and_confidence(name, cdf, ev)[0] for name, cdf in curves_by_method.items()}
+    T = ev["T"].to_numpy()
+    for archetype in sorted(ev.archetype.unique()):
+        mask = (ev.archetype == archetype).to_numpy()
+        row = {"archetype": archetype, "rows": int(mask.sum())}
+        for name, h in points.items():
+            err = np.abs(h[mask] - T[mask])
+            row[name] = {"day_error": float(err.mean()), "within_1_day": float(np.mean(err <= 1))}
+        out.append(row)
+    return out
+
+
 def simulate(ev: pd.DataFrame, cdf: np.ndarray, name: str) -> dict:
     """Plays every test failure through the real engine with the standing default (Balanced)."""
     h, u, conf = point_and_confidence(name, cdf, ev)
@@ -196,6 +212,7 @@ def main():
     report["methods"] = {name: method_metrics(name, cdf[has_rule], ev) for name, cdf in c.items()}
     for name, m in report["methods"].items():
         print(f"  {name:18s} day error {m['day_error']:.2f}  coverage {m['coverage80']:.1%}  eligible {m['eligible_share']:.1%}")
+    report["by_archetype"] = by_archetype(ev, {"rule": c["rule"][has_rule], "chosen_calibrated": c["chosen_calibrated"][has_rule]})
 
     print("  playing every test failure through the engine ...")
     chosen_curve = c["chosen_calibrated"][has_rule]

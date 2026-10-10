@@ -18,7 +18,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 7 | Screens on live data | Done | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
 | 8 | Three agents | Done (live runs deferred) | Mocked agent tests pass; three live runs per agent read sensibly |
 | 9 | Message text | Done (live polish deferred) | The template shows first; the polish tests pass |
-| 10 | Security review | To do | Every row of `08-security.md` is checked and findings are fixed |
+| 10 | Security review | Done (two console settings are yours) | Every row of `08-security.md` is checked and findings are fixed |
 | 11 | README, demo reset, demo script | To do | Reset works; all tests pass; the demo runs in 3 minutes |
 
 Notes from step 5:
@@ -50,7 +50,7 @@ Notes from step 8 (decided 10 October 2026):
 - The agents are in `lib/server/agents/`: one runner for all three (`runner.ts`), their tools (`tools.ts`), prompts (`prompts.ts`, loaded into the `prompts` table by the seed) and the one file that calls Claude (`model.ts`). Models: `CLAUDE_MODEL_FAST` = `claude-haiku-5-5` (triage), `CLAUDE_MODEL_SMART` = `claude-sonnet-5-5` (desk, Ops assistant). Each answer has a fixed JSON shape; on the fourth model call tools are switched off, so the agent must answer.
 - Triage and desk tools are bound to the one case being handled and take no input, so a model cannot point them at another customer. `get_mandate_status` returns an empty `last_changed`: the data does not record when a mandate status changed.
 - Every model call is one `llm_runs` row; rows of one run share `input_fields.run_id`, and the last row holds what the rules did with the answer.
-- The daily limit of 50 agent runs per user counts against the real date in UTC, not the demo clock, because it caps real spending (`claim_agent_run`, migration `20261010000005_agents.sql`). It is the only thing that reads the real date. Reset demo clears it.
+- The daily limit of 50 agent runs per user counts against the real date in UTC, not the demo clock, because it caps real spending (`claim_agent_run`, migration `20261010000005_agents.sql`). It is the only thing that reads the real date. Reset demo clears it. (Changed in step 10: Reset demo now keeps it.)
 - Running a desk fix marks its desk item done and writes a `fix_run:<fix>` audit row. Nothing is sent to a customer yet, and the case stays in Needs action: what follows a fix (a new mandate, a downtime ending) is not modelled. Automatic fixes are saved as done with the case; `approve-fixes` runs waiting ones (`run_desk_items`, all or nothing).
 - A payment outside the plan does not call the desk agent. `recordOutsidePayment` already cancels the pending attempt, which is the only fix allowed for that trigger, so the desk covers non-balance failures only.
 - `run-exceptions-desk` is also an ops-only route, for a desk case that has no desk items (for example after an outage). `process-debit-event` runs the same desk for every new desk case.
@@ -69,6 +69,18 @@ Notes from step 9 (decided 10 October 2026):
 - `set_polish` in `update-controls`: lender or insurer, own merchant only, with an audit row. Settings has the on/off button. The seed starts it off for Northfield and on for Harbour (decision record). Reset demo restores it.
 - The templates stay in code (`lib/engine/messages.ts`, `TEMPLATE_VERSION` "t1"), so every fact comes from code. Spec 04 now says so.
 - Live polish deferred: the Anthropic account has no credit, so a live polish call fails and the template is kept, which is the designed fallback. On the demo, Harbour's notices show "Template text" and each attempt has a `model_error` row in `llm_runs`. Try a live run once the account has credit.
+
+Notes from step 10 (decided 10 October 2026):
+
+- Every row of `08-security.md` was checked. Secrets: none in tracked files, git history or the built site; the only `sb_secret_` text in browser code is the Supabase library checking a key's prefix.
+- Stricter word checks, policy v1.1 (golden cases D5 and M7). The banned words now catch plurals and variants (salaries, paydays, pay-day, employers, paycheque, earnings). `validatePolish` also rejects any number, month name or day word left once the amount, the dates and the name are taken out, and words for a score, confidence, tier, a percentage or "funded". The desk agent's reason must pass `checkReasonText` (one line, at most 200 characters, the same words); otherwise the merchant sees the catalogue description, and the run's audit row lists the replaced reasons.
+- Reset demo keeps the daily agent-run counts (migration `20261010000007_reset_keeps_usage.sql`), so the cap of 50 cannot be restarted by resetting. The database tests clear `usage` themselves.
+- Row 8 reworded: version 1 has no public webhook route. Failed debits come only from the ops event injector, and repeated event ids open one case. The signature check comes with optional prompt 12.
+- Row 18: `ml/export/model_card.md` now has day error by customer type. Gig workers, the self-employed and customers paid twice a month are several days further off than salaried customers. The type is never a model input.
+- Exports rerun with policy v1.1: only the version labels in `predictions.csv` and `model_card.csv` changed.
+- Yours, in the consoles: turn off "Allow new users to sign up" in both Supabase projects (a stranger's login has no role and is refused everywhere, but each refusal is audited), and put the Anthropic key in its own workspace with a monthly spend limit, auto-reload off.
+- Say out loud in the demo: the customer phone link never expires; Reset demo empties the audit log; the three open legal questions in `08-security.md`.
+- The test "refuses the wrong role, and audits the attempt" can exceed its 5-second limit on a slow network; rerun once (left as is, decided 10 October 2026).
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

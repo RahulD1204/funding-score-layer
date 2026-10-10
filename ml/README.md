@@ -31,7 +31,7 @@ The full run takes about two minutes. It uses a fixed seed (20260402), so every 
 | generate | `fsl/generate.py` | 5,000 training customers and 200 app customers, each with 24 months of daily balance, income, spending, EMIs and premiums. Adds salary delays, bank downtime, cancelled or paused mandates, closed accounts, catch-all codes with bank free text, refunds and Re 1 test debits. Draws the ten seeded demo cases until the rule gives their scripted days. |
 | features | `fsl/features.py` | One row per failed due-date debit (insufficient funds). Each feature uses only transactions dated before the due date. The labels are the last failed day and the first successful day. |
 | train | `fsl/train.py` | Trains XGBoost AFT and XGBoost quantile on months 13 to 18, tunes on 19 to 21, keeps the better one, and calibrates it. |
-| evaluate | `fsl/evaluate.py` | Scores the test months (22 to 24) against the true funded day: day error, range coverage, band calibration, gate pass rates, failed presentations per payment, salary recognition and catch-all codes. |
+| evaluate | `fsl/evaluate.py` | Scores the test months (22 to 24) against the true funded day: day error (overall and by customer type, the fairness check of specs/08 row 18), range coverage, band calibration, gate pass rates, failed presentations per payment, salary recognition and catch-all codes. |
 | export | `fsl/export.py` | Writes `export/*.csv` and the model card (`export/model_card.md`). |
 | check | `tests/ml-export.test.ts` | Plays the exported seeded cases through the real engine to their endings in specs/05. |
 

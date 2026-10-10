@@ -127,6 +127,8 @@ describe.skipIf(!READY)("agents through the server functions (test project, mode
   async function reset() {
     const res = await call("reset-demo", "ops");
     expect(res, JSON.stringify(res.json)).toMatchObject({ status: 200, json: { today: DUE } });
+    // Reset demo keeps today's agent-run counts (migration 20261010000007), so each test starts from none here.
+    await owner.query(`delete from public.usage`);
   }
 
   /** A failed due-date debit. Without a reason code, the one the simulated bank returns (sim_truth). */
@@ -438,5 +440,12 @@ describe.skipIf(!READY)("agents through the server functions (test project, mode
     ]);
     const [usage] = await rows(`select agent_runs from public.usage where user_id = $1`, [userIds.get("ops")]);
     expect(usage.agent_runs).toBe(50);
+
+    // Reset demo does not give the runs back: the count restarts only on a new real date.
+    expect((await call("reset-demo", "ops")).status).toBe(200);
+    const [after] = await rows(`select agent_runs from public.usage where user_id = $1`, [userIds.get("ops")]);
+    expect(after.agent_runs).toBe(50);
+    expect((await call("ask-ops-assistant", "ops", { question: "Why?" })).json).toMatchObject({ available: false });
+    expect(sent()).toHaveLength(0);
   });
 });

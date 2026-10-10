@@ -46,7 +46,12 @@ export async function deskProposals(db: SupabaseClient, userId: string, actor: s
     const run = await askDeskAgent(db, userId, facts, settings);
     const validation = run.answer ? validateDeskOutput(facts.trigger, run.answer.fixes, settings) : null;
     proposals = validation?.accepted ?? [];
-    summary = { agentRun: agentRunSummary(run), accepted: validation?.accepted.map((p) => p.fix) ?? [], rejected: validation?.rejected ?? [] };
+    summary = {
+      agentRun: agentRunSummary(run),
+      accepted: validation?.accepted.map((p) => p.fix) ?? [],
+      rejected: validation?.rejected ?? [],
+      replacedReasons: validation?.replacedReasons ?? [],
+    };
   } catch (error) {
     summary = { agentError: errorText(error) };
   }

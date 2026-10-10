@@ -1,10 +1,11 @@
 // Golden cases P1 to P9: one failed debit through the whole decision pipeline,
-// plus D1 to D4 (exceptions desk) and M1 to M6 (messages). See specs/09-testing.md.
+// plus D1 to D5 (exceptions desk) and M1 to M7 (messages). See specs/09-testing.md.
 // Never edit an expected value to make a test pass. Change the spec first.
 
 import { describe, expect, it } from "vitest";
 import {
   POLICY_VERSION,
+  FIX_CATALOGUE,
   allowedFixes,
   buildLinkMessage,
   buildRetryMessage,
@@ -13,6 +14,7 @@ import {
   fillTemplate,
   findBannedWords,
   formatRupees,
+  checkReasonText,
   messagesDue,
   resolveMode,
   validateDeskOutput,
@@ -321,6 +323,36 @@ describe("D4 the desk still works with the agent switched off", () => {
   });
 });
 
+describe("D5 the merchant reads the desk reason, so it is checked (policy v1.1)", () => {
+  it("replaces a reason that hints at income, a score or the funded day with the catalogue description", () => {
+    const result = validateDeskOutput("mandate_cancelled", [
+      { fix: "stop_attempts", reason: "Insufficient balance until salary day." },
+      { fix: "send_reregistration_link", reason: "92% likely to be funded by the 7th." },
+    ]);
+    expect(result.accepted).toEqual([
+      { fix: "stop_attempts", reason: FIX_CATALOGUE.stop_attempts.description, mode: "automatic" },
+      { fix: "send_reregistration_link", reason: FIX_CATALOGUE.send_reregistration_link.description, mode: "needs_approval" },
+    ]);
+    expect(result.replacedReasons).toEqual([
+      { fix: "stop_attempts", problems: ["banned word: salary", "banned word: balance"] },
+      { fix: "send_reregistration_link", problems: ["internal word: funded", "internal word: percent"] },
+    ]);
+    expect(result.rejected).toEqual([]);
+  });
+
+  it("replaces a reason of two lines or over 200 characters, and keeps a plain one as written", () => {
+    expect(checkReasonText("The mandate was cancelled.\nSend a link.")).toEqual(["more than one line"]);
+    expect(checkReasonText("x".repeat(201))).toEqual(["reason too long"]);
+    expect(checkReasonText("Customer's employers changed the score tier.")).toEqual([
+      "banned word: employer",
+      "internal word: score",
+      "internal word: tier",
+    ]);
+    expect(checkReasonText("Downtime ends at 18:00.")).toEqual([]);
+    expect(checkReasonText("The mandate was cancelled at the bank.")).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Messages
 // ---------------------------------------------------------------------------
@@ -464,5 +496,56 @@ describe("M6 a message is composed when a debit locks or a link is sent", () => 
     const m = buildLinkMessage({ kind: "EMI", merchantName: "Northfield Finance", amountPaise: EMI_PAISE, link: "[payment link]" });
     expect(m.text).toBe("You can pay your EMI of Rs 12,000 to Northfield Finance here: [payment link]");
     expect(m.facts).toEqual({ amount: "Rs 12,000", dates: [], merchant: "Northfield Finance" });
+  });
+});
+
+describe("M7 a rewrite may not slip a fact or an income word past the checks (policy v1.1)", () => {
+  const m = buildRetryMessage({
+    segment: "lending",
+    merchantName: "Northfield Finance",
+    amountPaise: EMI_PAISE,
+    dueDate: DUE,
+    plannedDate: "2026-04-08",
+  });
+  const plus = (extra: string) => validatePolish(`${m.text} ${extra}`, m.facts).problems;
+
+  it("catches plurals and variants of the banned words", () => {
+    expect(findBannedWords("Their salaries and paydays vary; ask employers about pay-day.")).toEqual([
+      "salary",
+      "payday",
+      "employer",
+    ]);
+    expect(findBannedWords("Incomes, balances, a paycheque and earnings.")).toEqual(["income", "balance", "paycheck", "earnings"]);
+    expect(findBannedWords("A salaried customer.")).toEqual(["salary"]);
+  });
+
+  it("rejects a date written another way, a stray number or a day word", () => {
+    expect(plus("If that fails, we'll retry on April 12.")).toEqual(["unexpected number 12", "unexpected date word april"]);
+    expect(plus("Next try: 12/04/2026.")).toEqual(["unexpected number 12/04/2026"]);
+    expect(plus("Or by the 7th.")).toEqual(["unexpected number 7"]);
+    expect(plus("We'll call tomorrow.")).toEqual(["unexpected date word tomorrow"]);
+  });
+
+  it("rejects a percentage or a word for a score or the funded day", () => {
+    expect(plus("You are 92% likely to be funded.")).toEqual([
+      "unexpected number 92",
+      "internal word: funded",
+      "internal word: percent",
+    ]);
+    expect(plus("Your score is good.")).toEqual(["internal word: score"]);
+  });
+
+  it("still accepts the template itself and a plain rewrite, including the word may", () => {
+    expect(validatePolish(m.text, m.facts)).toEqual({ ok: true, problems: [] });
+    expect(plus("You may also pay earlier if you wish.")).toEqual([]);
+    const insurance = buildRetryMessage({
+      segment: "insurance",
+      merchantName: "Harbour Life",
+      amountPaise: 2_500_00,
+      dueDate: DUE,
+      plannedDate: "2026-04-12",
+      graceEnd: "2026-05-02",
+    });
+    expect(validatePolish(insurance.text, insurance.facts)).toEqual({ ok: true, problems: [] });
   });
 });

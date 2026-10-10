@@ -3,6 +3,7 @@
 // It may pick only from this catalogue. Rules here decide whether a fix runs at once
 // or waits for the merchant, and reject anything outside the list.
 
+import { checkReasonText } from "./messages";
 import type { FailureLabel } from "./triage";
 
 export const FIX_TYPES = [
@@ -106,14 +107,19 @@ export interface DeskProposal {
 export interface DeskValidation {
   accepted: DeskProposal[];
   rejected: { fix: string; why: "not_in_catalogue" | "not_allowed_for_trigger" | "no_reason" | "duplicate" }[];
+  /** Accepted fixes whose reason failed checkReasonText: the merchant sees the catalogue description instead. */
+  replacedReasons: { fix: FixType; problems: string[] }[];
 }
 
 /**
  * Validates the desk agent's raw output. Each item must name a fix that is allowed for the trigger
  * and give a reason. The mode always comes from the merchant's settings, never from the agent.
+ * The merchant reads the reason, so it must pass checkReasonText (one short line, no income word,
+ * no score, confidence, tier, percentage or funded day). A reason that fails keeps its fix, and the
+ * catalogue's own description is shown instead.
  */
 export function validateDeskOutput(trigger: DeskTrigger, raw: unknown, settings: FixSettings = {}): DeskValidation {
-  const result: DeskValidation = { accepted: [], rejected: [] };
+  const result: DeskValidation = { accepted: [], rejected: [], replacedReasons: [] };
   if (!Array.isArray(raw)) return result;
   const allowed = allowedFixes(trigger);
   const seen = new Set<string>();
@@ -130,7 +136,13 @@ export function validateDeskOutput(trigger: DeskTrigger, raw: unknown, settings:
       result.rejected.push({ fix, why: "duplicate" });
     } else {
       seen.add(fix);
-      result.accepted.push({ fix: fix as FixType, reason: reason.trim(), mode: resolveMode(fix as FixType, settings) });
+      const problems = checkReasonText(reason.trim());
+      if (problems.length > 0) result.replacedReasons.push({ fix: fix as FixType, problems });
+      result.accepted.push({
+        fix: fix as FixType,
+        reason: problems.length > 0 ? FIX_CATALOGUE[fix as FixType].description : reason.trim(),
+        mode: resolveMode(fix as FixType, settings),
+      });
     }
   }
   return result;

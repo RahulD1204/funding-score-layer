@@ -134,6 +134,7 @@ Example: `h = 5`, `u = 7`, `L = 10`, `R = 2`, `d = 2`. Earliest: 7 and 10 April.
 | Customer paid outside the plan | Cancel the pending attempt | No | Automatic |
 
 - The agent's output is a list of `{ fix, reason }`. A fix outside the catalogue, not allowed for the trigger, without a reason, or repeated is rejected.
+- The merchant reads the reason, so it must pass `checkReasonText` (section 9). A reason that fails keeps its fix, and the catalogue's own description is shown instead. Policy v1.1.
 - The mode always comes from the merchant's setting for that fix type, never from the agent.
 - If the agent is unavailable or returns nothing usable, the desk proposes every allowed fix by rule.
 
@@ -147,8 +148,10 @@ Example: `h = 5`, `u = 7`, `L = 10`, `R = 2`, `d = 2`. Earliest: 7 and 10 April.
 | Merchant reason | Suggested from payment timing. Advice only. |
 | Ops reason | Payment pattern around {anchor}, based on {observations} observations, confidence {confidence}%. |
 
-- Never in customer or merchant text: salary, payday, pay day, income, employer, wage, wages, balance, paycheck.
-- A polished rewrite is accepted only if it keeps the amount, every date and the merchant name, adds no other amount or date, contains no banned word and stays under 400 characters. Otherwise the template is sent.
+- Never in customer or merchant text: salary, payday, pay day, income, employer, wage, wages, balance, paycheck, earnings. Each word also covers its plural and spelling variants: salaries, salaried, paydays, pay-day, incomes, employers, balances, paycheque. Policy v1.1.
+- Never in model-written customer or merchant text: a word for a score, confidence, tier, probability, a percentage, or "funded". Policy v1.1.
+- A polished rewrite is accepted only if it keeps the amount, every date and the merchant name, adds no other amount or date, contains no banned word and stays under 400 characters. Once the amount, the dates (written "8 April") and the name are taken out, no number, month name or day word (today, tomorrow, a weekday) may be left, so a date written another way ("April 12", "12/04", "the 7th") or a percentage is rejected. "May" is left to the number check, because it is also an ordinary word. Otherwise the template is sent. Policy v1.1.
+- A reason a model writes for a merchant (the desk agent's one line) passes `checkReasonText`: one line, at most 200 characters, no banned word and none of the words above. Policy v1.1.
 - The ops reason never states a salary amount or an employer.
 
 ## 10. Decision pipeline (`evaluateFailedDebit`)

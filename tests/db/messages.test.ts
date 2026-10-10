@@ -190,6 +190,8 @@ describe.skipIf(!READY)("customer messages through the server functions (test pr
     model.calls = [];
     const res = await call("reset-demo", "ops");
     expect(res, JSON.stringify(res.json)).toMatchObject({ status: 200, json: { today: DUE } });
+    // Reset demo keeps today's agent-run counts (migration 20261010000007), so each test starts from none here.
+    await owner.query(`delete from public.usage`);
   }, 60_000);
 
   afterAll(async () => {

@@ -338,6 +338,20 @@ def write_model_card(report: dict, version: str, seeded_compare: list, app_parit
             L.append(f"| {seg.title()} | {label} | {s['layer_acts']:,} | {w['failed']:,} | {w['collected_by_debit']:,} | {w['paid_by_link']:,} | {w['failed_per_collected']:.2f} |")
     L.append("")
     L.append("Payment links go out only on the layer's out-of-reach route, so the original retries show none.\n")
+    L.append("## Day error by customer type (test months)\n")
+    L.append("Fairness check (specs/08-security.md row 18): whether one type of customer gets systematically worse suggestions. "
+             "The type is never a model input; it is used here only to check. Day error is the average number of days "
+             "between the predicted funded day and the true one.\n")
+    L.append(f"| Customer type | Test rows | Day error, {names['rule']} | Within 1 day, rule | "
+             f"Day error, {names['chosen_calibrated']} | Within 1 day, chosen |")
+    L.append("| --- | --- | --- | --- | --- | --- |")
+    for a in report["by_archetype"]:
+        r, ch = a["rule"], a["chosen_calibrated"]
+        L.append(f"| {a['archetype']} | {a['rows']:,} | {r['day_error']:.2f} | {_pct(r['within_1_day'])} | "
+                 f"{ch['day_error']:.2f} | {_pct(ch['within_1_day'])} |")
+    L.append("")
+    L.append("A type with a much larger day error gets retries timed further from its funded day. On synthetic data this "
+             "follows from how regular each type's income was generated; it says nothing about real customers.\n")
     sal = report["salary"]
     L.append("## Salary recognition (test months)\n")
     L.append(f"- Recognized: {sal['recognized']:,}. Right day (within 1 day of the true funded day): {sal['correct_day']:,}. "

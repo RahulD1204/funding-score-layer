@@ -97,6 +97,8 @@ describe.skipIf(!READY)("server functions (test project)", () => {
   async function reset() {
     const res = await call("reset-demo", "ops");
     expect(res, JSON.stringify(res.json)).toMatchObject({ status: 200, json: { today: DUE } });
+    // Reset demo keeps today's agent-run counts (migration 20261010000007), so each test starts from none here.
+    await owner.query(`delete from public.usage`);
   }
 
   /** A failed due-date debit as the simulated bank returns it (reason code and bank text from sim_truth). */
