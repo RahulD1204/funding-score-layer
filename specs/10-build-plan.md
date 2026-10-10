@@ -19,7 +19,7 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 8 | Three agents | Done (live runs deferred) | Mocked agent tests pass; three live runs per agent read sensibly |
 | 9 | Message text | Done (live polish deferred) | The template shows first; the polish tests pass |
 | 10 | Security review | Done (two console settings are yours) | Every row of `08-security.md` is checked and findings are fixed |
-| 11 | README, demo reset, demo script | To do | Reset works; all tests pass; the demo runs in 3 minutes |
+| 11 | README, demo reset, demo script | Done | Reset works; all tests pass; the demo runs in 3 minutes |
 
 Notes from step 5:
 
@@ -81,6 +81,12 @@ Notes from step 10 (decided 10 October 2026):
 - Yours, in the consoles: turn off "Allow new users to sign up" in both Supabase projects (a stranger's login has no role and is refused everywhere, but each refusal is audited), and put the Anthropic key in its own workspace with a monthly spend limit, auto-reload off.
 - Say out loud in the demo: the customer phone link never expires; Reset demo empties the audit log; the three open legal questions in `08-security.md`.
 - The test "refuses the wrong role, and audits the attempt" can exceed its 5-second limit on a slow network; rerun once (left as is, decided 10 October 2026).
+
+Notes from step 11 (decided 10 October 2026):
+
+- `README.md` now covers the product, the 26 tables, the ten routes, the agents and their tools, the environment variables, the tests, rebuilding the data and models, and Reset demo (which keeps today's agent-run counts).
+- Reset demo needed no change: every table a server function writes is either emptied or restored from `private.seed_snapshot`. The flow test now compares each restored table with that copy row for row, checks every case table is empty, and checks `usage` is kept.
+- `DEMO-SCRIPT.md` is the three-minute walkthrough. It is written for the agents' fallbacks (no Anthropic credit yet) and says what changes once credit is added.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

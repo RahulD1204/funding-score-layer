@@ -1,6 +1,7 @@
 // reset-demo (specs/03). Ops only. Puts the demo back to the seeded state through the owner-run
 // database function reset_demo (migration 20261010000003): cases, events and the audit log are
 // emptied, the seeded settings and clock come back, and one audit row records who reset it.
+// Today's agent-run counts are kept (migration 20261010000007), so the cap of 50 is not restarted.
 
 import "server-only";
 import { POLICY_VERSION } from "@/lib/engine";

@@ -399,20 +399,43 @@ describe.skipIf(!READY)("server functions (test project)", () => {
     it("reset demo puts back settings, consents, the clock, and empties cases and the audit log", async () => {
       await reset();
       await inject("L-1041");
+      await inject("L-1046");
+      await inject("I-2011");
       await call("update-controls", "lender", { action: "set_limits", productId: "p-northfield-personal-loan", lastAllowedDay: 12, maxRepresentations: 3 });
+      await call("update-controls", "lender", { action: "set_standing_default", productId: "p-northfield-personal-loan", label: "Safest" });
       await call("update-controls", "lender", { action: "set_fix_mode", fixType: "send_reregistration_link", mode: "automatic" });
+      await call("update-controls", "insurer", { action: "set_polish", on: false });
       await asCustomer(caseOf("L-1041"), "update-controls", { action: "withdraw_consent", caseId: caseOf("L-1041") });
       await call("update-controls", "lender", { action: "set_kill_switch", on: true });
       await advanceUntil("2026-04-04");
+      await owner.query(
+        `insert into public.usage (user_id, date, agent_runs) select user_id, current_date, 7 from public.profiles where role = 'ops'
+         on conflict (user_id, date) do update set agent_runs = excluded.agent_runs`,
+      );
 
-      await reset();
+      // The route itself, not reset(), which also clears the usage table for the other tests.
+      expect(await call("reset-demo", "ops")).toMatchObject({ status: 200, json: { today: DUE } });
+      // Every setting the server functions can change is back exactly as the seed saved it.
+      for (const table of ["merchants", "products", "fix_settings", "consents", "sim_clock"]) {
+        const sorted = (list: { r: unknown }[]) => list.map(({ r }) => JSON.stringify(r)).sort();
+        const now = await rows(`select to_jsonb(t) as r from public."${table}" t`);
+        const seeded = await rows(`select jsonb_array_elements(rows) as r from private.seed_snapshot where table_name = $1`, [table]);
+        expect(seeded.length, table).toBeGreaterThan(0);
+        expect(sorted(now), table).toEqual(sorted(seeded));
+      }
+      for (const table of ["cases", "debit_events", "triage_results", "plan_actions", "merchant_cases", "schedule_options", "desk_items", "messages", "llm_runs"]) {
+        expect(await rows(`select count(*)::int as n from public."${table}"`), table).toEqual([{ n: 0 }]);
+      }
+      // Today's agent-run count is kept (migration 20261010000007), so resetting cannot restart the cap of 50.
+      expect(await rows(`select agent_runs from public.usage where date = current_date`)).toEqual([{ agent_runs: 7 }]);
       expect(await today()).toBe(DUE);
       expect(await rows(`select count(*)::int as n from public.cases`)).toEqual([{ n: 0 }]);
       expect(await rows(`select decision, actor like 'ops:%' as by_ops from public.audit_log`)).toEqual([{ decision: "demo_reset", by_ops: true }]);
       expect(await rows(`select kill_switch from public.merchants where id = 'm-northfield'`)).toEqual([{ kill_switch: false }]);
-      expect(await rows(`select last_allowed_day, max_representations from public.products where id = 'p-northfield-personal-loan'`)).toEqual([
-        { last_allowed_day: 10, max_representations: 2 },
+      expect(await rows(`select last_allowed_day, max_representations, standing_default from public.products where id = 'p-northfield-personal-loan'`)).toEqual([
+        { last_allowed_day: 10, max_representations: 2, standing_default: "Balanced" },
       ]);
+      expect(await rows(`select polish_on from public.merchants where id = 'm-harbour'`)).toEqual([{ polish_on: true }]);
       expect(await rows(`select mode from public.fix_settings where merchant_id = 'm-northfield' and fix_type = 'send_reregistration_link'`)).toEqual([
         { mode: "needs_approval" },
       ]);
