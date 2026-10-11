@@ -33,7 +33,7 @@ An agent here is a server function that lets Claude call a short, fixed list of 
 
 **Strong closed-account evidence:** a recent failure on this obligation had a closed-account code, or the bank text plainly says the account is closed, transferred or invalid. The label sends the case to the exceptions desk, never to a retry. (Added in `triage-v2`, 12 October 2026, after the live measurement found closed accounts answered weak or labelled balance.)
 
-**What rules do with it:** `acceptAgentTriage`. Only a strong, well-formed answer inside the list is accepted, and a balance label is re-checked against the lookups. Otherwise the label is unknown and the case fails open.
+**What rules do with it:** `acceptAgentTriage`. Only a strong, well-formed answer inside the list is accepted, and a balance label is re-checked against the lookups. A closed-account label is accepted only when a past failure on the obligation carries `account_closed` or `instrument_closed`; a mandate or downtime label is refused, because the lookups already ruled it out (policy v1.3, spec 06 section 2). Otherwise the label is unknown and the case fails open.
 
 ## 2. Exceptions desk agent
 

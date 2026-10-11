@@ -148,13 +148,26 @@ describe("P4 a catch-all reason code", () => {
     expect(d.failOpenReason).toBe("triage_unknown");
   });
 
-  it("sends a strong non-balance answer to the desk", () => {
+  // Since policy v1.3 a closed-account answer needs a past closed-account code on the obligation.
+  it("sends a strong closed-account answer to the desk when a past failure code confirms it", () => {
     const d = evaluateFailedDebit({
       ...input,
-      agentTriage: { label: "instrument_closed", strength: "strong", evidence: ["bank text: ACCOUNT CLOSED"] },
+      pastFailureCodes: ["insufficient_funds", "account_closed"],
+      agentTriage: { label: "instrument_closed", strength: "strong", evidence: ["past failure: account_closed"] },
     });
     expect(d.route).toBe("exceptions_desk");
     expect(d.deskTrigger).toBe("instrument_closed");
+  });
+
+  it("fails open on a closed-account answer resting on bank text alone", () => {
+    const d = evaluateFailedDebit({
+      ...input,
+      pastFailureCodes: ["insufficient_funds", "insufficient_funds"],
+      agentTriage: { label: "instrument_closed", strength: "strong", evidence: ["bank text: ACCOUNT CLOSED"] },
+    });
+    expect(d.route).toBe("fail_open");
+    expect(d.failOpenReason).toBe("triage_unknown");
+    expect(d.triage.evidence).toContain("agent answer rejected: closed_not_in_history");
   });
 
   it("uses the lookups before any agent", () => {

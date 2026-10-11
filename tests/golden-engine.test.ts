@@ -296,6 +296,27 @@ describe("E14 accepting the Triage agent's answer", () => {
     );
     expect(d).toMatchObject({ label: "unknown", accepted: false, rejection: "contradicts_lookup" });
   });
+
+  // Policy v1.3: code confirms a closed-account label, and the agent cannot overrule the lookups.
+  const closedAnswer = { label: "instrument_closed", strength: "strong", evidence: ["Bank text reads ACCOUNT CLOSED"] };
+  it("refuses a closed-account label resting on bank text alone, on a lack-of-funds history", () => {
+    const d = acceptAgentTriage(closedAnswer, { ...clean, pastFailureCodes: ["insufficient_funds", "insufficient_funds", "payment_failed"] });
+    expect(d).toMatchObject({ label: "unknown", accepted: false, rejection: "closed_not_in_history" });
+    expect(acceptAgentTriage(closedAnswer, clean).rejection).toBe("closed_not_in_history");
+  });
+  it("accepts a closed-account label when a past failure carries a closed-account code", () => {
+    expect(acceptAgentTriage(closedAnswer, { ...clean, pastFailureCodes: ["insufficient_funds", "account_closed"] })).toMatchObject({
+      label: "instrument_closed",
+      accepted: true,
+    });
+    expect(acceptAgentTriage(closedAnswer, { ...clean, pastFailureCodes: ["instrument_closed"] }).accepted).toBe(true);
+  });
+  it("refuses mandate and downtime labels the lookups already ruled out", () => {
+    for (const label of ["mandate_cancelled", "mandate_paused", "bank_downtime"]) {
+      const d = acceptAgentTriage({ label, strength: "strong", evidence: ["bank text says so"] }, clean);
+      expect(d).toMatchObject({ label: "unknown", accepted: false, rejection: "contradicts_lookup" });
+    }
+  });
 });
 
 describe("E15 control and consent checks", () => {

@@ -62,7 +62,7 @@ Three Claude agents, in `lib/server/agents/`. Each has a fixed list of read-only
 
 | Agent | Model variable | Tools | What the rules do with its answer |
 | --- | --- | --- | --- |
-| Failure Triage | `CLAUDE_MODEL_FAST` | `get_mandate_status`, `get_bank_downtime`, `get_failure_history`, `get_obligation` | `acceptAgentTriage` accepts a strong answer only. A weak or missing answer leaves the original retries |
+| Failure Triage | `CLAUDE_MODEL_FAST` | `get_mandate_status`, `get_bank_downtime`, `get_failure_history`, `get_obligation` | `acceptAgentTriage` accepts a strong answer only. A closed-account label also needs a past closed-account code on the obligation, and a mandate or downtime label the lookups ruled out is refused (policy v1.3). A weak, refused or missing answer leaves the original retries |
 | Exceptions desk | `CLAUDE_MODEL_SMART` | `get_case`, `get_mandate_status`, `get_bank_downtime`, `get_sent_messages`, `list_allowed_fixes` | `validateDeskOutput` keeps only fixes from the catalogue for that failure. Its one-line reason must pass `checkReasonText`, or the merchant sees the catalogue description. With no usable answer, the rules propose every allowed fix |
 | Ops assistant | `CLAUDE_MODEL_SMART` | `search_audit_log`, `get_case`, `get_triage_result` | `validateOpsAnswer` keeps only citations of audit rows its own tools returned. An answer with none shows as "not found in the audit log" |
 

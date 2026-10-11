@@ -94,12 +94,17 @@ export function triageByRules(input: TriageInput): TriageResult {
 export interface AgentTriageContext {
   mandateStatus: MandateStatus;
   downtimeActive: boolean;
+  /**
+   * Reason codes of past failed debits on this obligation before the due date: the history the
+   * agent's get_failure_history tool reads. Missing means none, so a closed-account label is refused.
+   */
+  pastFailureCodes?: string[];
 }
 
 export interface AgentTriageDecision {
   label: FailureLabel;
   accepted: boolean;
-  rejection?: "malformed" | "label_not_allowed" | "weak" | "no_evidence" | "contradicts_lookup";
+  rejection?: "malformed" | "label_not_allowed" | "weak" | "no_evidence" | "contradicts_lookup" | "closed_not_in_history";
   evidence: string[];
 }
 
@@ -130,6 +135,15 @@ export function acceptAgentTriage(raw: unknown, context: AgentTriageContext): Ag
   // Waiting for payday cannot fix a mandate or bank problem, so a balance label needs both to be clean.
   if (label === "balance" && (context.mandateStatus !== "active" || context.downtimeActive)) {
     return reject("contradicts_lookup");
+  }
+  // The lookups decide mandate and downtime labels; the agent may not overrule them (policy v1.3).
+  if ((label === "mandate_cancelled" || label === "mandate_paused") && context.mandateStatus === "active") {
+    return reject("contradicts_lookup");
+  }
+  if (label === "bank_downtime" && !context.downtimeActive) return reject("contradicts_lookup");
+  // Bank text alone cannot close an account: a past failure code must confirm it (policy v1.3).
+  if (label === "instrument_closed" && !(context.pastFailureCodes ?? []).some((c) => CLEAR_REASONS[c] === "instrument_closed")) {
+    return reject("closed_not_in_history");
   }
   return { label, accepted: true, evidence: r.evidence as string[] };
 }

@@ -82,7 +82,7 @@ Why retries only: retiming a retry stays inside the existing mandate and loan co
 
 | Agent | Called when | May do |
 | --- | --- | --- |
-| Failure Triage | Only for catch-all reason codes that the code table and the lookups cannot label | Return one label from a fixed list, a strength and its evidence. Only a strong answer is accepted. Code confirms the facts behind a "balance" label |
+| Failure Triage | Only for catch-all reason codes that the code table and the lookups cannot label | Return one label from a fixed list, a strength and its evidence. Only a strong answer is accepted. Code confirms the facts behind a "balance" label. A closed-account label needs a past closed-account code on the obligation, and a mandate or downtime label the lookups ruled out is refused (policy v1.3, decided 12 October 2026) |
 | Exceptions desk | A non-balance failure, or a payment outside the plan | Propose fixes from a fixed catalogue with a reason. The merchant's setting decides the mode |
 | Ops assistant | An ops analyst asks why | Answer from the audit log and cite the rows used |
 

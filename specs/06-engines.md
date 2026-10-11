@@ -26,7 +26,9 @@ Accepting the agent's answer (`acceptAgentTriage`):
 
 - The label must be in the list and not "unknown". The strength must be "strong". There must be evidence.
 - A "balance" label is refused unless the mandate is active and no downtime applies. Code checks these facts, not the agent.
-- Anything else becomes "unknown" and the case fails open.
+- An "instrument closed" label is refused unless at least one past failure on this obligation (the history `get_failure_history` returns: failed debits on the obligation before the due date) carries `account_closed` or `instrument_closed`. Bank text alone is not enough: a false "ACCOUNT CLOSED" would otherwise stop attempts on a customer who only lacked funds. Policy v1.3.
+- A "mandate cancelled", "mandate paused" or "bank downtime" label is refused when the lookups found the mandate active or no downtime, because code has already ruled it out. The agent is only asked in that situation, so these labels are never accepted from it. Policy v1.3.
+- Anything else becomes "unknown" and the case fails open; the audit row records why the answer was refused.
 
 Routing: balance continues. Mandate cancelled, mandate paused, instrument closed and bank downtime go to the exceptions desk. Unknown fails open.
 

@@ -29,7 +29,7 @@ Unless a case says otherwise: a Rs 12,000 EMI due on 2 April 2026 fails on day 0
 | E11 | Days 29, 30, 31, 1, 2 give a median of 31 and a spread of 1 |
 | E12 | Month-end anchor, and February not fooling it |
 | E13 | Triage by code table and by lookup, with no agent |
-| E14 | Accepting or rejecting the Triage agent's answer |
+| E14 | Accepting or rejecting the Triage agent's answer. Policy v1.3: a closed-account label is accepted only with a past `account_closed` or `instrument_closed` code on the obligation; mandate and downtime labels the lookups ruled out are refused |
 | E15 | Control checks in order, and the authentication limit by rail |
 | E16 | Drift after a job change |
 | E17 | Estimate from payment history; data on or after the due date is ignored |
@@ -59,7 +59,7 @@ These run the case state machine with a simulated clock and ground truth.
 
 | Case | Checks |
 | --- | --- |
-| P1 to P9 | One failed debit end to end: schedules, tier C, low confidence, catch-all codes with and without an agent answer, exceptions desk, control checks, out of reach, insurance, a model score |
+| P1 to P9 | One failed debit end to end: schedules, tier C, low confidence, catch-all codes with and without an agent answer, exceptions desk, control checks, out of reach, insurance, a model score. Since policy v1.3, P4's closed-account answer reaches the desk only with a past closed-account code, and the same answer resting on bank text alone fails open |
 | D1 to D4 | Fix catalogue, modes from merchant settings, rejections, rule-based fallback |
 | D5 | A desk reason with an income word, a score word, a percentage, two lines or too many characters is replaced by the catalogue description (policy v1.1) |
 | D6 | A desk reason with a date, an amount, a time, a count, a month name or a day word is replaced by the catalogue description; a reason with none is kept as written (policy v1.2). Since v1.2, the reasons in D3 and D5 that carried a time ("18:00") are written without one, or are expected to be replaced |

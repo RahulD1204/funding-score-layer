@@ -2,7 +2,7 @@
 // Every number here is a placeholder to tune on data unless specs/00-decision-record.md says it is decided.
 // Change POLICY_VERSION whenever a rule or a number changes, then rerun all golden cases.
 
-export const POLICY_VERSION = "v1.2";
+export const POLICY_VERSION = "v1.3";
 
 export type Segment = "lending" | "insurance";
 export type Rail = "bank_mandate" | "upi_autopay";

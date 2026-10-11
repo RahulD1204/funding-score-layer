@@ -49,6 +49,8 @@ export interface FailedDebitInput {
   downtimeActive: boolean;
   /** The Triage agent's raw answer, once the caller has asked it. Leave out on the first pass. */
   agentTriage?: unknown;
+  /** Reason codes of past failed debits on this obligation, which confirm a closed-account answer. */
+  pastFailureCodes?: string[];
 
   controls: Pick<
     ControlInput,
@@ -130,6 +132,7 @@ export function evaluateFailedDebit(input: FailedDebitInput): Decision {
     const agent = acceptAgentTriage(input.agentTriage, {
       mandateStatus: input.mandateStatus,
       downtimeActive: input.downtimeActive,
+      pastFailureCodes: input.pastFailureCodes,
     });
     triage = {
       label: agent.label,

@@ -138,7 +138,11 @@ export async function processDebitEvent({ db, caller, body }: FlowContext): Prom
         dueDate,
         reasonCode,
         bankText,
-        context: { mandateStatus: loaded.input.mandateStatus, downtimeActive: loaded.input.downtimeActive },
+        context: {
+          mandateStatus: loaded.input.mandateStatus,
+          downtimeActive: loaded.input.downtimeActive,
+          pastFailureCodes: loaded.input.pastFailureCodes,
+        },
       });
       decision = evaluateFailedDebit({ ...loaded.input, agentTriage: triageRun.answer });
       agentNote = triageNote(triageRun, decision);

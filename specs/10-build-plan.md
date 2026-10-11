@@ -102,6 +102,13 @@ Notes on policy v1.2 (decided 12 October 2026):
 - `desk-v3` replaces `desk-v2`: no dates, amounts or numbers in a reason. In 4 live demo runs all 8 reasons passed and none was replaced.
 - Exports rerun with policy v1.2: only the version labels in `predictions.csv`, `model_card.csv` and the model card title changed.
 
+Notes on policy v1.3 (decided 12 October 2026):
+
+- `acceptAgentTriage` accepts a closed-account label only when a past failure on the obligation carries `account_closed` or `instrument_closed`, and refuses mandate and downtime labels the lookups ruled out (spec 06 section 2, golden cases E14 and P4). A live check found a lack-of-funds case whose bank text falsely said "ACCOUNT CLOSED" was accepted and its attempts stopped; it now fails open.
+- The codes come from the same rows the agent's `get_failure_history` reads. `loadDebitInput` reads two more columns (`obligation_id`, `reason_code`) from the transactions it already loads and passes the codes to the engine. No table changes.
+- Golden case P4's closed-account answer changed with the spec: it reaches the desk with a past `account_closed` code, and the same answer on bank text alone fails open.
+- 29 of the 30 test-month closed accounts have such a code, so the Triage table measured under v1.2 would not change. No prompt changed.
+
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 
 ## Step 0: your setup

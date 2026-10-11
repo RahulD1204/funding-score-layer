@@ -294,13 +294,15 @@ async function loadTransactions(db: SupabaseClient, customerId: string, asOf: IS
     own_merchant: boolean;
     merchant_id: string | null;
     source: string | null;
+    obligation_id: string | null;
+    reason_code: string | null;
   };
   const out: Tx[] = [];
   for (let from = 0; ; from += PAGE) {
     const page = must(
       await db
         .from("transactions")
-        .select("date, amount_paise, direction, status, own_merchant, merchant_id, source")
+        .select("date, amount_paise, direction, status, own_merchant, merchant_id, source, obligation_id, reason_code")
         .eq("customer_id", customerId)
         .lt("date", asOf)
         .order("date")
@@ -374,6 +376,10 @@ export async function loadDebitInput(
     errorReason,
     mandateStatus: ob.mandate_status,
     downtimeActive: (downtimes as unknown[]).length > 0,
+    // The same rows the Triage agent's get_failure_history reads: failed debits on this obligation.
+    pastFailureCodes: transactions
+      .filter((t) => t.obligation_id === ob.id && t.status === "failed" && t.reason_code)
+      .map((t) => t.reason_code!),
     controls: controlsFor(ob, consents),
     hasFailureEvidence: signal?.has_failure_evidence ?? false,
     identityLinked: signal?.identity_linked ?? false,
