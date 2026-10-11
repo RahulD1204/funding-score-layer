@@ -6,7 +6,7 @@ Nine screens: seven behind a login for three roles, one customer mock, and the l
 
 | # | Screen | Role | What is on it |
 | --- | --- | --- | --- |
-| 1 | Login | All | Email sign-in. One seeded demo account each for a lender, an insurer and ops |
+| 1 | Login | All | Three one-click buttons, "Sign in as lender", "Sign in as insurer" and "Sign in as Razorpay ops", with the line "Demo accounts on synthetic data. Click Reset demo on the ops console before you start." Email sign-in below them. One seeded demo account each for a lender, an insurer and ops |
 | 2 | Collections queue | Lender | Summary strip: awaiting choice, in progress, paid, on original retries, failed retries. Table of failed EMIs: borrower, amount, state, next date, retries used, chosen schedule. Badge: "Advice only, you decide" |
 | 3 | Case detail | Lender | Two or three schedule cards. Each card: label, dates, likelihood band, days overdue, charges for waiting, difference against the original first retry, a pick button and its deadline. A greyed row with Razorpay's original retries. Plan table, customer message, outcome, activity |
 | 4 | Renewals dashboard | Insurer | Failed premiums with state, end of cover, attempts used, and the next date once it locks. No schedule cards |

@@ -109,6 +109,12 @@ Notes on policy v1.3 (decided 12 October 2026):
 - Golden case P4's closed-account answer changed with the spec: it reaches the desk with a past `account_closed` code, and the same answer on bank text alone fails open.
 - 29 of the 30 test-month closed accounts have such a code, so the Triage table measured under v1.2 would not change. No prompt changed.
 
+Notes on one-click demo sign-in (decided 12 October 2026):
+
+- The login page has three buttons that sign in the seeded lender, insurer and ops users, for judges (spec 02 screen 1, spec 08 row 21). `POST /api/demo-sign-in` accepts only the three demo emails, only from the site's own pages. The server asks Supabase's admin service for a one-time sign-in token (`generateLink`, no email sent) and redeems it with the cookie-backed client (`verifyOtp`), so no password is involved. It uses the Supabase secret key the server already has; no new environment variable.
+- The login form and the Sign out button now clear their busy state after they finish. Next.js keeps a component's state for the next visit, so signing out and back in within one tab left the buttons disabled.
+- Tests: `tests/demo-sign-in.test.ts` (other emails, other sites and bad input refused; a refused request never reaches Supabase) and `tests/built-site.test.ts` (no demo password anywhere in `.next/` after `npm run build`; skipped without a build or without the passwords).
+
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 
 ## Step 0: your setup

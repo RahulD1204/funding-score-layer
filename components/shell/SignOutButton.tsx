@@ -16,6 +16,8 @@ export default function SignOutButton() {
         await createClient().auth.signOut();
         router.replace("/");
         router.refresh();
+        // Next.js keeps this button's state for the next sign-in in the same tab, so never leave it busy.
+        setBusy(false);
       }}
       className="rounded-lg border border-white/30 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10"
     >

@@ -394,7 +394,7 @@ The Python copy of the median-day rule was compared with the app's real rule on 
 | Server routes (`app/api/`) | Ten: process a failed debit, choose a schedule, advance the day, update controls, reset the demo, run the desk, approve fixes, ask the Ops assistant, compose a message, the customer's case | Built; each checks login and role; each fails open on error |
 | Agents (`lib/server/agents/`) | One runner, the tools, versioned prompts, one file that calls Claude | Built; tested with the model mocked; run live and measured (section 7.1). Polish and the Ops assistant seen working on the deployed site; the desk and Triage agents so far only through the test script |
 | Screens | Login; collections queue; lender case; renewals; insurer case; exceptions desk; settings; customer phone mock; ops console; internal case view; audit log and model card; engine preview at `/preview` | Built on live data. The design spec counts nine: login, collections queue, lender case detail, renewals dashboard, exceptions desk, settings, customer phone mock, ops console, audit log and model card. This list of twelve splits out the insurer case (inside renewals in the spec) and the internal case view (inside the ops console), and adds `/preview`, which is not a spec screen |
-| Tests | 260 tests (policy v1.3): golden engine, flow, pipeline, desk and message cases; data-export checks; screens; agents with the model mocked; database tests for access rules and full case flows | All pass (one network-flaky test may need a rerun) |
+| Tests | 272 tests: golden engine, flow, pipeline, desk and message cases; data-export checks; screens; agents with the model mocked; database tests for access rules and full case flows | All pass (one network-flaky test may need a rerun) |
 | Security review | Every row of a 20-row threat table checked; secrets searched in code, history and the built site | Done |
 
 **Stack:** Next.js 16 on Vercel (functions run in Mumbai, next to the database); Supabase for Postgres, login and access rules; Claude through the Anthropic API from server code only; Python for modelling.
@@ -433,12 +433,14 @@ Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assista
 **Demo mechanics and caveats:**
 - The demo clock moves one day per click; the script needs about 20 clicks.
 - **Reset demo** empties every case, event, plan, schedule card, desk item, message, model-call record and the audit log; restores every setting and consent and the clock (2 April 2026); keeps today's agent-run counts.
-- Three logins need three separate browser windows (one cookie each).
+- The login page has one-click buttons for the three demo users, so judges need no password. Showing two roles side by side still needs separate browser windows (one login cookie each).
 - Sign-ups are turned off in both Supabase projects; the three demo users are created by the seed script.
 
 ---
 
-## 13. Security and privacy controls (summary of the 20-row review)
+## 13. Security and privacy controls (summary of the 21-row review)
+
+**Anyone with the link can use the demo.** The login page has one-click buttons that sign in the lender, the insurer or Razorpay ops, with no password. What limits the damage: the data is synthetic; sign-ups are off, so no one can create a login; each login has 50 agent runs a day; the Anthropic key has its own spend limit; only the three seeded demo emails can be signed in this way, from the site's own pages; no password reaches the browser. **Caveat:** everyone shares the same three logins, so one visitor can use up a login's agent runs for the day (the site then shows the fallbacks) or press Reset demo during someone else's session.
 
 | Risk | Control |
 | --- | --- |
@@ -448,7 +450,8 @@ Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assista
 | Leak between merchants | Row policy on merchant id |
 | Role escalation | Users cannot write their own profile |
 | Exposed keys | Keys only in server code and Vercel settings; built site searched |
-| Unauthenticated calls | Every route requires a login and checks the role |
+| Unauthenticated calls | Every route requires a login and checks the role, except demo sign-in, which can only sign in a seeded demo user |
+| Open demo sign-in | Only the three demo emails, only from the site's own pages; a one-time server-side token, so no password in the page, code or responses; tested, and the build is checked for the passwords |
 | Forged or repeated events | No public webhook in version 1; repeated event ids open one case |
 | Agent acts outside its remit, contacts a customer unprompted, prompt injection, sees too much | Fixed lists, validated outputs, approvals, read-only tools returning only listed fields |
 | Invented facts or income words in messages | Facts from code; polish and reason checks with template or catalogue fallback |
@@ -489,6 +492,7 @@ Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assista
 14. Reset demo empties the audit log.
 15. The mandate "last changed" date is not in the data.
 16. The demo clock moves one day per click; events are accepted only in a short window after the due date.
+16a. The demo is open to anyone with the link (one-click sign-in, section 13). The three logins are shared, so one visitor can use up a day's agent runs or reset the demo during someone else's session.
 
 **Assumptions to confirm with Razorpay** (open questions 1–3 and 8)
 17. Razorpay's real default retry days and counts for eNACH and UPI Autopay.

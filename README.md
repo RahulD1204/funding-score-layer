@@ -33,7 +33,11 @@ Three demo users, created by the seed script:
 | `insurer@harbour.example` | Insurer | Renewals, case screens with locked dates only, exceptions desk, settings |
 | `ops@fsl.example` | Razorpay ops | Ops console (demo clock, Reset demo, event injector, Ops assistant), the internal case view, the audit log and model card |
 
-The passwords are the values of `DEMO_LENDER_PASSWORD`, `DEMO_INSURER_PASSWORD` and `DEMO_OPS_PASSWORD`. They are not in this repository. Sign-ups are turned off in both Supabase projects, so no one else can create a login. The customer's side is a phone mock at `/c/<token>`, opened from the ops internal case view. The engine preview, with no database, is at `/preview`.
+The login page has a one-click button for each ("Sign in as lender", "Sign in as insurer", "Sign in as Razorpay ops"). The button calls `POST /api/demo-sign-in` (`lib/server/demo-sign-in.ts`): the server asks Supabase's admin service for a one-time sign-in token for that user, sends no email, and redeems the token at once, which sets the login cookie. No password is involved, so none reaches the browser. Only the three demo emails are accepted, and only from the site's own pages. The email and password form stays below the buttons.
+
+**Anyone with the link can use the demo.** The login page has one-click buttons that sign in the lender, the insurer or Razorpay ops, with no password. What limits the damage: the data is synthetic; sign-ups are off, so no one can create a login; each login has 50 agent runs a day; the Anthropic key has its own spend limit; only the three seeded demo emails can be signed in this way, from the site's own pages; no password reaches the browser. Because everyone shares the same three logins, one visitor can use up a login's runs for the day or press Reset demo during someone else's session.
+
+The passwords are the values of `DEMO_LENDER_PASSWORD`, `DEMO_INSURER_PASSWORD` and `DEMO_OPS_PASSWORD`. They are not in this repository, and the deployed site does not need them. Sign-ups are turned off in both Supabase projects, so no one else can create a login. The customer's side is a phone mock at `/c/<token>`, opened from the ops internal case view. The engine preview, with no database, is at `/preview`.
 
 [DEMO-SCRIPT.md](DEMO-SCRIPT.md) is a three-minute walkthrough.
 

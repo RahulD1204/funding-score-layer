@@ -10,7 +10,7 @@ Each risk has a control and a check. Rows 1 to 3 protect the privacy promise. Ro
 | 4 | Leak between merchants | One lender sees another's cases | A row policy on merchant id | Create a second lender account and compare queues |
 | 5 | Role escalation | A user changes their own role to ops | `profiles` is not writable by the user | Try it from a merchant account |
 | 6 | Exposed keys | The Supabase secret key, the Anthropic key or Razorpay test keys reach the browser | Keys live in Vercel environment variables. Calls run only in server functions. Server-only modules import `server-only` | Search the built site for the key prefixes |
-| 7 | Unauthenticated calls | Anyone triggers a case or advances the clock | Every function requires a login and checks the role | Call a function URL without a token |
+| 7 | Unauthenticated calls | Anyone triggers a case or advances the clock | Every function requires a login and checks the role. The one exception, demo sign-in, only signs in a seeded demo user (row 21) | Call a function URL without a token |
 | 8 | Forged or repeated webhooks | Fake failure events create cases | Version 1 has no public route: failed debits come only from the ops event injector through `process-debit-event`, which needs an ops login. Repeated event ids open one case. A signature check over the raw body comes with the public route in optional prompt 12 | Call `process-debit-event` without an ops login; send the same event twice. With prompt 12: send a bad signature |
 | 9 | Agent acts outside its remit | An agent invents a label or a fix | Fixed label and fix lists, validated outputs, rules decide | Golden cases E14, P4 and D3 |
 | 10 | Agent contacts a customer unprompted | A borrower gets a message nobody approved | Customer-contact fixes need approval unless the merchant set that type to automatic | Golden case D2, and the flow test for approvals |
@@ -24,6 +24,7 @@ Each risk has a control and a check. Rows 1 to 3 protect the privacy promise. Ro
 | 18 | Unfair suggestions | One group gets systematically worse suggestions | No demographic or location columns | Compare day error by archetype in `ml/` |
 | 19 | Double debit | A customer is charged twice in one cycle | One unresolved debit at a time; pending actions cancelled on any success; pay-by-link refused while a debit is unresolved | Golden cases F4, F6, F7 and F10 |
 | 20 | Stale consent | The layer acts after consent is withdrawn | Control checks re-run before every action | Golden case F9 |
+| 21 | Open demo sign-in | Anyone with the link signs in as the lender, the insurer or ops with one click, and can inject events, press Reset demo, change settings or spend agent runs | The data is synthetic. Sign-ups are off, so no new login can be made. Only the three seeded demo emails can be signed in this way, only from the site's own pages; the server redeems a one-time Supabase token, so no password exists in the page, the code or any response. Each login has 50 agent runs a day, kept across Reset demo, and the Anthropic key has its own spend limit. Shared logins mean one visitor can use up a day's runs or reset the demo during someone else's session | `tests/demo-sign-in.test.ts` (other emails and other sites refused); `tests/built-site.test.ts` (no demo password in the build) |
 
 ## Open risks no control here removes
 
