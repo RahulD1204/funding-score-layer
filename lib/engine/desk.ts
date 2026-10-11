@@ -115,8 +115,8 @@ export interface DeskValidation {
  * Validates the desk agent's raw output. Each item must name a fix that is allowed for the trigger
  * and give a reason. The mode always comes from the merchant's settings, never from the agent.
  * The merchant reads the reason, so it must pass checkReasonText (one short line, no income word,
- * no score, confidence, tier, percentage or funded day). A reason that fails keeps its fix, and the
- * catalogue's own description is shown instead.
+ * no score, confidence, tier, percentage or funded day, and no date, amount or other number).
+ * A reason that fails keeps its fix, and the catalogue's own description is shown instead.
  */
 export function validateDeskOutput(trigger: DeskTrigger, raw: unknown, settings: FixSettings = {}): DeskValidation {
   const result: DeskValidation = { accepted: [], rejected: [], replacedReasons: [] };

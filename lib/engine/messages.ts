@@ -72,6 +72,8 @@ export function findInternalWords(text: string): string[] {
 /**
  * Checks model-written text a merchant will read, such as the desk agent's one-line reason.
  * Empty when the text may be shown as written; otherwise the problems, and the caller uses its own text.
+ * No code can confirm a fact a model states, so the reason may hold no number, month or day word:
+ * no date, amount, time or count in any form (policy v1.2).
  */
 export function checkReasonText(text: string): string[] {
   const problems: string[] = [];
@@ -80,6 +82,7 @@ export function checkReasonText(text: string): string[] {
   if (text.length > MAX_REASON_LENGTH) problems.push("reason too long");
   for (const w of findBannedWords(text)) problems.push(`banned word: ${w}`);
   for (const w of findInternalWords(text)) problems.push(`internal word: ${w}`);
+  problems.push(...findNumbersAndDateWords(text.toLowerCase()));
   return problems;
 }
 
@@ -167,6 +170,15 @@ function normaliseAmount(s: string): string {
 const MONTH_WORD = /\b(?:january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/g;
 const DAY_WORD = /\b(?:today|tonight|tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)\b/g;
 
+/** Every number, month name or day word in lower-case text. "May" is left to the number check. */
+function findNumbersAndDateWords(lower: string): string[] {
+  const problems: string[] = [];
+  for (const n of lower.match(/\d+(?:[,./:-]\d+)*/g) ?? []) problems.push(`unexpected number ${n}`);
+  for (const w of lower.match(MONTH_WORD) ?? []) problems.push(`unexpected date word ${w}`);
+  for (const w of lower.match(DAY_WORD) ?? []) problems.push(`unexpected date word ${w}`);
+  return problems;
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -212,9 +224,7 @@ export function validatePolish(rewrite: string, facts: BuiltMessage["facts"]): P
     .replace(AMOUNT_PATTERN, " ")
     .replace(DATE_PATTERN, " ")
     .toLowerCase();
-  for (const n of rest.match(/\d+(?:[,./:-]\d+)*/g) ?? []) problems.push(`unexpected number ${n}`);
-  for (const w of rest.match(MONTH_WORD) ?? []) problems.push(`unexpected date word ${w}`);
-  for (const w of rest.match(DAY_WORD) ?? []) problems.push(`unexpected date word ${w}`);
+  problems.push(...findNumbersAndDateWords(rest));
 
   for (const w of findBannedWords(rewrite)) problems.push(`banned word: ${w}`);
   for (const w of findInternalWords(rewrite)) problems.push(`internal word: ${w}`);

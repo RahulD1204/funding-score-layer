@@ -49,7 +49,7 @@ An agent here is a server function that lets Claude call a short, fixed list of 
 | `get_sent_messages` | Dates and types of messages already sent for this case |
 | `list_allowed_fixes` | The catalogue entries allowed for this trigger |
 
-**Output:** `[{ "fix": a catalogue fix type, "reason": one line }]`
+**Output:** `[{ "fix": a catalogue fix type, "reason": one line, with no date, amount or other number }]`
 
 **What rules do with it:** `validateDeskOutput`. Unlisted, misplaced, unexplained or repeated fixes are rejected. A reason that fails `checkReasonText` (specs/06 section 9) is replaced by the catalogue description, because the merchant reads it. The merchant's per-fix setting sets the mode. Automatic fixes run at once; the rest wait in the queue. With no usable answer, `fallbackProposals` proposes every allowed fix.
 

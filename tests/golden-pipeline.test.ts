@@ -296,10 +296,12 @@ describe("D3 anything outside the list is rejected", () => {
       { fix: "refund_customer", reason: "Seems fair." },
       { fix: "send_reregistration_link", reason: "Just in case." },
       { fix: "hold_and_represent", reason: "  " },
-      { fix: "hold_and_represent", reason: "Downtime ends at 18:00." },
+      { fix: "hold_and_represent", reason: "The bank is down, so present the debit once it is back." },
       { fix: "hold_and_represent", reason: "Again." },
     ]);
-    expect(result.accepted).toEqual([{ fix: "hold_and_represent", reason: "Downtime ends at 18:00.", mode: "automatic" }]);
+    expect(result.accepted).toEqual([
+      { fix: "hold_and_represent", reason: "The bank is down, so present the debit once it is back.", mode: "automatic" },
+    ]);
     expect(result.rejected.map((r) => r.why)).toEqual([
       "not_in_catalogue",
       "not_allowed_for_trigger",
@@ -335,7 +337,11 @@ describe("D5 the merchant reads the desk reason, so it is checked (policy v1.1)"
     ]);
     expect(result.replacedReasons).toEqual([
       { fix: "stop_attempts", problems: ["banned word: salary", "banned word: balance"] },
-      { fix: "send_reregistration_link", problems: ["internal word: funded", "internal word: percent"] },
+      // Since policy v1.2 the numbers in this reason are problems too (D6).
+      {
+        fix: "send_reregistration_link",
+        problems: ["internal word: funded", "internal word: percent", "unexpected number 92", "unexpected number 7"],
+      },
     ]);
     expect(result.rejected).toEqual([]);
   });
@@ -348,8 +354,36 @@ describe("D5 the merchant reads the desk reason, so it is checked (policy v1.1)"
       "internal word: score",
       "internal word: tier",
     ]);
-    expect(checkReasonText("Downtime ends at 18:00.")).toEqual([]);
     expect(checkReasonText("The mandate was cancelled at the bank.")).toEqual([]);
+  });
+});
+
+describe("D6 a desk reason states no date, amount or other number (policy v1.2)", () => {
+  it("replaces a reason with a date, amount, time, count, month or day word by the catalogue description", () => {
+    expect(checkReasonText("The mandate was cancelled before 12 April.")).toEqual(["unexpected number 12", "unexpected date word april"]);
+    expect(checkReasonText("Register a new mandate before 2026-04-12.")).toEqual(["unexpected number 2026-04-12"]);
+    expect(checkReasonText("The Rs 12,000 EMI cannot be collected on this mandate.")).toEqual(["unexpected number 12,000"]);
+    expect(checkReasonText("Downtime ends at 18:00.")).toEqual(["unexpected number 18:00"]);
+    expect(checkReasonText("After 3 attempts, stop.")).toEqual(["unexpected number 3"]);
+    expect(checkReasonText("Present again tomorrow, once the bank is back.")).toEqual(["unexpected date word tomorrow"]);
+    expect(checkReasonText("Ask the customer to resume it in June.")).toEqual(["unexpected date word june"]);
+
+    const result = validateDeskOutput("mandate_cancelled", [
+      { fix: "stop_attempts", reason: "The mandate is cancelled, so the Rs 12,000 EMI due 2 April cannot be collected." },
+      { fix: "send_reregistration_link", reason: "A new mandate is needed before the overdue cap." },
+    ]);
+    expect(result.accepted).toEqual([
+      { fix: "stop_attempts", reason: FIX_CATALOGUE.stop_attempts.description, mode: "automatic" },
+      { fix: "send_reregistration_link", reason: "A new mandate is needed before the overdue cap.", mode: "needs_approval" },
+    ]);
+    expect(result.replacedReasons).toEqual([
+      { fix: "stop_attempts", problems: ["unexpected number 12,000", "unexpected number 2", "unexpected date word april"] },
+    ]);
+  });
+
+  it("keeps a plain reason, including the word may", () => {
+    expect(checkReasonText("The customer may register a new mandate from the link.")).toEqual([]);
+    expect(checkReasonText("No message has been sent yet, so the customer needs a link to register a new mandate.")).toEqual([]);
   });
 });
 

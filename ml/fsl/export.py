@@ -282,11 +282,12 @@ LIVE_AGENT_RESULTS = [
     "### Message polish (polish-v1)\n",
     "50 of 50 rewrites of invented templates passed validatePolish (25 lending, 25 insurance). Typical 1.7 seconds, slowest "
     "19.5 seconds. In 8 full demo runs, every one of Priya Raman's notices was polished and passed.\n",
-    "### Demo runs (desk-v2, ops-v2)\n",
+    "### Demo runs (desk-v3, ops-v2)\n",
     "Four full runs of DEMO-SCRIPT.md through the server functions on the test project:",
-    "- Desk agent: both fixes proposed with its own reasons in every run, none replaced; 5 to 7 seconds. Dates read \"2 April\" "
-    "and \"12 April\" (with desk-v1, all 4 runs showed \"2026-04-12\"). The reasons restate the amount and dates from the case "
-    "record; no code check confirms them.",
+    "- Desk agent (desk-v3, policy v1.2): both fixes proposed with its own reasons in every run, and all 8 reasons passed the "
+    "check that rejects any date, amount or other number, so none was replaced; 4 to 5 seconds. Example: \"The mandate is "
+    "cancelled, so further debit attempts on it cannot succeed.\" Before: desk-v1 wrote \"2026-04-12\" in all 4 runs; desk-v2 "
+    "wrote \"2 April\" and restated the amount, which no code could confirm.",
     "- Ops assistant: answered 4 of 4 with cited audit rows, 10 to 13 seconds. It explained the two-day bank delay in all 4 "
     "(with ops-v1, 2 of 4 described the 8 April debit and the 10 April result as records that disagree).",
     "- Failure Triage on Sunita Rao (L-1047): accepted as lack of funds 3 of 3 (5 of 5 with triage-v1), about 6 seconds.",

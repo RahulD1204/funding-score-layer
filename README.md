@@ -80,7 +80,7 @@ The notice text is a template in `lib/engine/messages.ts`, filled from code: the
 - no other number, month name or day word appears,
 - no banned word: salary, payday, employer, income, earnings, paycheque and their plurals and spellings, and no word for a score, confidence, tier, a percentage or "funded".
 
-Otherwise the template is sent. The desk agent's reason goes through the same banned words. These stricter checks are policy v1.1 (golden cases D5 and M7).
+Otherwise the template is sent. The desk agent's reason goes through the same banned words. These stricter checks are policy v1.1 (golden cases D5 and M7). Since policy v1.2 the desk reason may also hold no number, month name or day word, so it states no date or amount that code cannot confirm; a reason that fails shows the catalogue wording (golden case D6).
 
 ## The tables
 

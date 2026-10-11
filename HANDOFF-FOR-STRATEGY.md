@@ -177,7 +177,7 @@ Worked example (`h = 5`, `u = 7`, `L = 10`, `R = 2`, `d = 2`, due 2 April): Earl
 - Output is parsed and validated; a malformed answer counts as no answer.
 - Bank text and tool results are treated as data, not instructions (tested with "ignore your instructions" in the bank text).
 - Every model call is logged (`llm_runs`), with prompt version, model, tools called, steps, output and what the rules did with it.
-- Prompts are versioned in the database. Current versions: `triage-v2`, `desk-v2`, `ops-v2`, `polish-v1` (the three v2 prompts came from the first live measurements, section 7.1).
+- Prompts are versioned in the database. Current versions: `triage-v2`, `desk-v3`, `ops-v2`, `polish-v1` (the changes came from the live measurements, section 7.1).
 - **Cost cap:** 50 agent runs per user per real day (UTC). Message polish counts toward the same 50. Reset demo does not restore the count.
 
 | Agent | Model tier | Called when | Tools | Output | What the rules do |
@@ -232,7 +232,7 @@ The agents now run live on the deployed site (Anthropic credit added; Vercel key
 
 **What this means:** with the agent, the model card's reach and lending figure hold (56.0% and 1.70). A one-line rule (catch-all + active mandate + no downtime = lack of funds) does almost as well on lending, so the agent's value on this data is mainly catching closed accounts (29 of 30 sent to the desk instead of 0) and the better insurance figure. On real data, where hidden non-balance causes may be more common, that gap could matter more.
 
-**Exceptions desk (`desk-v2`)**, 4 full demo runs: both fixes proposed with the agent's own reasons every time, none replaced; 5 to 7 s. Dates now read "2 April" and "12 April" (with `desk-v1`, all 4 runs showed "2026-04-12" on a merchant screen).
+**Exceptions desk (`desk-v3`, policy v1.2)**, 4 full demo runs: both fixes proposed with the agent's own reasons every time, and all 8 reasons passed the code check that rejects any date, amount or other number, so none was replaced; 4 to 5 s. Example: "The mandate is cancelled, so further debit attempts on it cannot succeed." Before: `desk-v1` wrote "2026-04-12" on a merchant screen in all 4 runs; `desk-v2` wrote "2 April" and restated the amount, which no code could confirm.
 
 **Ops assistant (`ops-v2`)**, 4 runs: answered every time with cited audit rows, 10 to 13 s. It explained the two-day bank delay every time (with `ops-v1`, 2 of 4 runs described the 8 April debit and its 10 April result as records that disagree).
 
@@ -241,7 +241,7 @@ The agents now run live on the deployed site (Anthropic credit added; Vercel key
 **Demo:** about 3.5 US cents per full run; 4 agent runs on the ops login (5 with Sunita), so about 12 rehearsals a day.
 
 **Caveats on the agents:**
-- **Desk reasons restate facts no code checks.** The desk agent's reasons repeat the amount and dates from the case record ("the Rs 12,000 EMI due 2 April", "before the overdue cap of 12 April"). The word check blocks income words and internal terms, but nothing confirms a stated date or amount is right. Customer messages are protected by `validatePolish`; merchant-facing desk reasons are not. A stricter check is scoped but not built (section 14).
+- **Desk reasons carry no facts (policy v1.2).** Since no code can confirm a date or amount a model states, a desk reason may hold no number, month name or day word; otherwise the merchant sees the catalogue wording. Number words ("three") would still pass. The reasons explain why a fix helps; the facts stay on the case screen, from code.
 - The prompts were tuned on the same synthetic cases they were measured on.
 - **The Triage agent matters for reach.** In the test months, 1,149 of 7,773 due-date failures (14.8%) carry a catch-all code. Lookups label 167 (14.5%), all correctly; 982 go to the agent, of which 952 (96.9%) are truly a lack of funds and 30 are closed accounts. Without the agent, reach falls from 56.0% to 48.5% (table above). The model card's older figure (12,694 catch-all failures, 6.2% labelled) counts every failed presentation over twelve months, retries included; see section 9.7.
 - An approved desk fix is recorded and audited, but **nothing is actually sent**, and the case stays in Needs action: what follows a fix (a new mandate, a downtime ending) is not modelled.
@@ -266,7 +266,7 @@ The agents now run live on the deployed site (Anthropic credit added; Vercel key
 - no banned word: salary, payday, pay day, income, employer, wage(s), balance, paycheck, earnings, plus plurals and spellings (salaries, salaried, paydays, pay-day, incomes, employers, balances, paycheque);
 - no word for a score, confidence, tier, probability, a percentage, or "funded".
 
-Otherwise the template is sent. A payment link's text is never polished (the check does not verify the link). The desk agent's one-line reason passes the same banned words, at most 200 characters on one line. These stricter checks are **policy v1.1**.
+Otherwise the template is sent. A payment link's text is never polished (the check does not verify the link). The desk agent's one-line reason passes the same banned words, at most 200 characters on one line. These stricter checks are **policy v1.1**. Since **policy v1.2** the desk reason also holds no number, month name or day word, so it states no date or amount.
 
 **Live polish results (`polish-v1`):** 50 of 50 rewrites of invented templates passed `validatePolish` (typical 1.7 s, slowest 19.5 s), and every one of Priya Raman's notices in 8 full demo runs was polished and passed. Example: "Your premium of Rs 2,500 to Harbour Life didn't go through on 2 April. ..." became "We were unable to collect your Rs 2,500 premium to Harbour Life on 2 April. We will try again on 3 April. Your cover continues until 17 April."
 
@@ -456,8 +456,7 @@ Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assista
 7. The agents were measured live on synthetic cases only, and the v2 prompts were tuned on those same cases. The Triage result (93% accepted, 99.7% of those correct) is optimistic, because the synthetic bank texts come from a short list the prompt names.
 8. If the Triage agent fails or is over the cap, catch-all failures (about 15% of due-date failures, 97% truly lack of funds) fail open, and reach falls to about 48.5%. A one-line rule would recover most of it on this data, at the cost of retrying a few closed accounts.
 9. Calibration used the true funded day, which a real system never sees.
-9a. The desk agent's reasons restate amounts and dates that no code check confirms (section 7). The prompt asks for "12 April" style, but only a code check could guarantee it.
-9b. The audit row for an insurance case does not say why an early attempt was added (no salary recognized, so a cheap early check runs on day 1). The case-opening row records that no salary was recognized, and the plan holds the early attempt, but no row says one caused the other.
+9a. The audit row for an insurance case does not say why an early attempt was added (no salary recognized, so a cheap early check runs on day 1). The case-opening row records that no salary was recognized, and the plan holds the early attempt, but no row says one caused the other.
 
 **Prototype mechanics**
 10. Razorpay is mocked: no real webhook, retries or payment links (an optional test-mode link call is planned, not built).

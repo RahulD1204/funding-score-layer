@@ -62,6 +62,7 @@ These run the case state machine with a simulated clock and ground truth.
 | P1 to P9 | One failed debit end to end: schedules, tier C, low confidence, catch-all codes with and without an agent answer, exceptions desk, control checks, out of reach, insurance, a model score |
 | D1 to D4 | Fix catalogue, modes from merchant settings, rejections, rule-based fallback |
 | D5 | A desk reason with an income word, a score word, a percentage, two lines or too many characters is replaced by the catalogue description (policy v1.1) |
+| D6 | A desk reason with a date, an amount, a time, a count, a month name or a day word is replaced by the catalogue description; a reason with none is kept as written (policy v1.2). Since v1.2, the reasons in D3 and D5 that carried a time ("18:00") are written without one, or are expected to be replaced |
 | M1 to M5 | Templates, polish accepted and rejected, banned words, formats |
 | M7 | Banned words catch plurals and variants; a rewrite that adds a date written another way, a number, a day word or a score word is rejected (policy v1.1) |
 | M6 | A retry notice when a debit locks or a locked debit moves; the link text when a link is sent; nothing for planned, cancelled or dropped debits |

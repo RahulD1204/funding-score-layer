@@ -95,6 +95,13 @@ Notes from the live agent runs (decided 12 October 2026):
 - `DEMO-SCRIPT.md` is now written for live agents, with a fallback line for each live step.
 - The model card adds the replay breakdown (out-of-reach against schedule cases, insurance inside grace, days to collect) and the due-date count of catch-all failures, both computed by `ml/fsl/evaluate.py`. The live agent results are copied in by hand in `ml/fsl/export.py`, because the pipeline makes no model call.
 
+Notes on policy v1.2 (decided 12 October 2026):
+
+- The desk agent's reason may hold no number, month name or day word (`checkReasonText`, spec 06 section 9, golden case D6), because no code can confirm a date or amount a model states. A reason that fails keeps its fix and shows the catalogue wording. The test is the one `validatePolish` already used, now shared.
+- Golden cases D3 and D5 changed with the spec, not to make them pass: D3's accepted reason no longer carries a time, and D5's "92% ... the 7th" reason now also lists its two numbers.
+- `desk-v3` replaces `desk-v2`: no dates, amounts or numbers in a reason. In 4 live demo runs all 8 reasons passed and none was replaced.
+- Exports rerun with policy v1.2: only the version labels in `predictions.csv`, `model_card.csv` and the model card title changed.
+
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 
 ## Step 0: your setup
