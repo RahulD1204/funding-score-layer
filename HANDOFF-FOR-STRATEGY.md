@@ -142,7 +142,7 @@ Worked example (`h = 5`, `u = 7`, `L = 10`, `R = 2`, `d = 2`, due 2 April): Earl
 - **Insurers never see schedule options**, and see a date only once it has locked. Enforced in the database: the schedule-options table refuses insurer rows and the insurer cannot read it.
 - **Nothing reaches a customer** unless the merchant approved it or set that fix type to automatic. Anything that contacts the customer starts as "needs approval".
 - **Facts in customer messages come from code**, never from a model.
-- **The audit log is append-only.** No role, not even the database owner, can update or delete a row.
+- **The audit log is append-only.** No role, not even the database owner, can update or delete a row: a database trigger refuses every UPDATE and DELETE, and the server role has neither permission. **Caveat:** Reset demo still empties the whole log, with `TRUNCATE` inside the `reset_demo` function, which runs as the database owner. Row triggers do not fire on TRUNCATE, and no app role may run it. So single rows cannot be altered, but the log can be wiped by a reset.
 - **Fail open everywhere.** Any error or failed check returns the case to Razorpay's original retries and writes an audit row.
 - **All time logic uses the simulated clock**, never the real date. The single deliberate exception is the agent-run cost cap, which counts against the real date because it limits real spending.
 - **Amounts are integers in paise**; displayed as "Rs 12,000"; dates displayed as "8 April".
@@ -284,6 +284,8 @@ Otherwise the template is sent. A payment link's text is never polished (the che
 - Loans Rs 5,000 to Rs 40,000 due on the 2nd, 5th, 7th, 10th or 15th; premiums Rs 1,000 to Rs 6,000 with a 15-day grace period.
 - Labels: the last failed attempt day and the first successful day; true funded day used only for evaluation and calibration. Features use only data dated before the due date (no leakage). **No demographic or location feature exists.** The salary amount is not a feature: only whether a salary is recognized, and its day.
 - Split by time: months 1–12 history only; train on months 13–18; tune 19–21; test 22–24 (5,626 test failures).
+- **Where salary credits come from:** the generator invents each customer's income stream (salaried pay from sources named like "payroll-123", gig payouts from "platform-…", self-employed receipts from "client-…"). Credits are recorded only for customers whose income is "visible": about 55% (50% of gig workers, 40% of the self-employed). The code assumes production would read inbound credits "such as a RazorpayX Payroll payout"; no such connection exists, and real payroll data is a later phase.
+- **App customers:** 200 customers hold 249 obligations: 130 a loan only, 21 a premium only, **49 both**. The engine never reads a customer id, so it never links a customer's two obligations: each failed debit gets its own plan, uncoordinated with the other. The only indirect link is that the estimate reads all the customer's payments, so collections on the other obligation count as payment history.
 
 ### 9.2 Models and accuracy (test months)
 | Method | Average day error | Median error | Within 1 day | 80% range coverage |
@@ -304,10 +306,24 @@ Otherwise the template is sent. A payment link's text is never polished (the che
 | Medium | 60% to under 80% | 70.1% | 76.2% | Yes |
 | Lower | under 60% | 13.7% | 15.9% | Yes |
 
+The table above covers every day a schedule could use (lending days 3 to 10, insurance days 1 to 12) for every test case, including cases the layer does not act on. **On the day a lender actually sees, the Balanced schedule's main day** (955 cases with schedules):
+
+| Band | Cases | Mean predicted | Observed | Holds |
+| --- | --- | --- | --- | --- |
+| High | 853 | 89.4% | 95.1% | Yes |
+| Medium | 98 | 73.7% | 89.8% | **No** |
+| Lower | 4 | 56.9% | 25.0% | Too few to judge |
+
+**Caveat:** on the Balanced day, Medium understates: those customers are funded about 90% of the time. The rule's Medium band fails the same way (252 cases, 92.1% observed). The error is in the cautious direction, but a card saying "Medium" is less accurate than the all-days table suggests.
+
 Calibration used isotonic regression on the tune months against the true funded day. **Caveat:** in production, the outcomes of the layer's own retries would have to replace the true day, which a real system never observes directly.
 
 ### 9.4 How many cases the layer acts on
 Share of test failures passing the gate and the confidence floor at the live floors (80% lending, 70% insurance): rule 49.8%, chosen model 57.0%. **Caveat:** roughly 4 in 10 failures still go to Razorpay's original retries; the layer is not universal. **Caveat:** these test failures hold only the insufficient-funds code. With catch-all failures added, reach is 56.0% with the Triage agent as measured and 48.5% without it (section 7.1).
+
+**How much rests on a recognized salary:** a salary is recognized in 1,229 of the 5,626 test failures (22%). Of the 3,206 cases the chosen model acts on, 1,063 have a recognized salary and 2,143 rest on payment history alone. (With the model, the estimate always comes from the model; a recognized salary and its day are two of its inputs. The layer on the rule acts on 2,803 cases: 1,192 estimated from a salary, 1,611 from history.)
+
+**Without salary recognition** (layer on the rule, salary recognition switched off): reach falls from 49.8% to 42.6%; lending failed per debit collected rises from 2.08 to 2.47; insurance from 2.90 to 3.33. Of the 1,192 salary cases, 786 are still acted on from payment history, with day error rising from 1.11 to 1.36. **Caveat:** the chosen model cannot be tested this way fairly without retraining, because salary recognition and the salary day are among its inputs; blanking them at prediction asks it about customers unlike anything it trained on.
 
 ### 9.5 Headline outcome: failed presentations per debit collected
 Each test failure replayed through the real engine with the standing default (Balanced). Cases that fail open run Razorpay's original retries (lending days 3, 6, 9; insurance days 1, 2, 3).
@@ -356,6 +372,8 @@ Each test failure replayed through the real engine with the standing default (Ba
 
 ### 9.7 Salary recognition and catch-all codes
 - Salary recognized 1,229 times; right day (within 1 day) 1,016; recognized where no monthly salary exists: 2. Precision 82.7%, recall 49.1%. Strict on purpose.
+  - "Right day" is measured against that cycle's true funded day (the first day the balance covers the debit), not the usual payday.
+  - Of the 213 misses: 97 had that month's salary arrive 1 to 3 days after the expected day; 97 arrived 2 or more days early (mostly paydays moved off a weekend); 8 arrived 4 or more days late; 7 had the salary on time but the customer funded earlier from other money; 4 had no payroll credit near the expected day. **Caveat:** the generator does not record its delays, so "late" is measured against the rule's expected day.
 - Catch-all failures, two counts that answer different questions:
   - **Every failed presentation, months 13–24, retries included:** 12,694. Code table and lookups labelled 786 (6.2%), all correctly. 11,908 left for the agent; true causes: balance 99.2%, instrument closed 0.8%.
   - **Due-date failures only, test months 22–24:** 1,149. Lookups labelled 167 (14.5%); 982 left for the agent; balance 952 (96.9%), instrument closed 30. **This is the count that matters for reach**, because only a due-date failure opens a case.
@@ -375,7 +393,7 @@ The Python copy of the median-day rule was compared with the app's real rule on 
 | Database (Supabase Postgres) | 26 tables: 7 a merchant may read, 14 internal, 5 system; row-level security on every table; users cannot change their own role; merchant tables are plain tables written only by server functions | Built, applied to the test and demo projects |
 | Server routes (`app/api/`) | Ten: process a failed debit, choose a schedule, advance the day, update controls, reset the demo, run the desk, approve fixes, ask the Ops assistant, compose a message, the customer's case | Built; each checks login and role; each fails open on error |
 | Agents (`lib/server/agents/`) | One runner, the tools, versioned prompts, one file that calls Claude | Built; tested with the model mocked; run live and measured (section 7.1). Polish and the Ops assistant seen working on the deployed site; the desk and Triage agents so far only through the test script |
-| Screens | Login; collections queue; lender case; renewals; insurer case; exceptions desk; settings; customer phone mock; ops console; internal case view; audit log and model card; engine preview at `/preview` | Built on live data |
+| Screens | Login; collections queue; lender case; renewals; insurer case; exceptions desk; settings; customer phone mock; ops console; internal case view; audit log and model card; engine preview at `/preview` | Built on live data. The design spec counts nine: login, collections queue, lender case detail, renewals dashboard, exceptions desk, settings, customer phone mock, ops console, audit log and model card. This list of twelve splits out the insurer case (inside renewals in the spec) and the internal case view (inside the ops console), and adds `/preview`, which is not a spec screen |
 | Tests | 260 tests (policy v1.3): golden engine, flow, pipeline, desk and message cases; data-export checks; screens; agents with the model mocked; database tests for access rules and full case flows | All pass (one network-flaky test may need a rerun) |
 | Security review | Every row of a 20-row threat table checked; secrets searched in code, history and the built site | Done |
 
@@ -452,6 +470,9 @@ Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assista
 4. About 4 in 10 failures do not pass the gate or floor and stay on original retries. The model card's 57% reach excludes catch-all failures; with them, 56.0% with the Triage agent, 48.5% without.
 5. Gig workers and the self-employed get estimates about 5 days off against about 1 for salaried customers.
 6. On customers that pass the gate, the model is barely better than the simple rule (1.12 vs 1.14 days).
+6a. On the Balanced schedule's main day, the Medium band understates (observed about 90% against 60% to 80% stated); the all-days calibration table hides this.
+6b. Without salary recognition the rule's reach falls from 49.8% to 42.6% and lending worsens from 2.08 to 2.47; the salary signal assumes payroll or inbound-credit data that does not exist yet.
+6c. A customer with both a loan and a premium (49 of 200 app customers) gets two uncoordinated plans.
 
 **AI**
 7. The agents were measured live on synthetic cases only, and the v2 prompts were tuned on those same cases. The Triage result (93% accepted, 99.7% of those correct) is optimistic, because the synthetic bank texts come from a short list the prompt names.
