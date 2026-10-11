@@ -162,7 +162,48 @@ def simulate(ev: pd.DataFrame, cdf: np.ndarray, name: str) -> dict:
                 layer["paid_by_link"] += int(L["paidVia"] == "link")
         for d in (layer, orig):
             d["failed_per_collected"] = d["failed"] / d["collected_by_debit"] if d["collected_by_debit"] else None
-        out[seg] = {"cases": len(idx), "layer_acts": int(sum(items[i]["layerActs"] for i in idx)), "with_layer": layer, "original_retries": orig}
+        out[seg] = {"cases": len(idx), "layer_acts": int(sum(items[i]["layerActs"] for i in idx)), "with_layer": layer,
+                    "original_retries": orig, "breakdown": breakdown(seg, [results[i] for i in idx if items[i]["layerActs"]])}
+    return out
+
+
+def breakdown(seg: str, acted: list[dict]) -> dict:
+    """Where the change comes from, on the cases the layer acts on: the out-of-reach route (a payment link,
+    no debit) against the schedule route, each next to Razorpay's original retries on the same cases.
+    Days count from the due date (day 0); a debit's day is the day it was presented."""
+    out = {}
+    for route in ("out_of_reach", "schedules"):
+        rs = [r for r in acted if r["layer"]["route"] == route]
+        L = [r["layer"] for r in rs]
+        o = [r["original"] for r in rs]
+        out[route] = {
+            "cases": len(rs),
+            "debits_presented": sum(x["debitsPresented"] for x in L),
+            "failed": sum(x["failedAttempts"] for x in L),
+            "collected_by_debit": sum(x["paidVia"] == "debit" for x in L),
+            "links_sent": sum(x["state"] in ("paid", "link_sent") for x in L) if route == "out_of_reach" else 0,
+            "paid_by_link": sum(x["paidVia"] == "link" for x in L),
+            "original_failed": sum(x["failedAttempts"] for x in o),
+            "original_collected": sum(x["paidDay"] is not None for x in o),
+        }
+    debit_days = [r["layer"]["paidDay"] for r in acted if r["layer"]["paidVia"] == "debit"]
+    link_days = [r["layer"]["paidDay"] for r in acted if r["layer"]["paidVia"] == "link"]
+    orig_days = [r["original"]["paidDay"] for r in acted if r["original"]["paidDay"] is not None]
+    out["collection_day"] = {
+        "original_debit_mean": float(np.mean(orig_days)) if orig_days else None,
+        "original_debit_median": float(np.median(orig_days)) if orig_days else None,
+        "layer_debit_mean": float(np.mean(debit_days)) if debit_days else None,
+        "layer_debit_median": float(np.median(debit_days)) if debit_days else None,
+        "link_median": float(np.median(link_days)) if link_days else None,
+    }
+    if seg == "insurance":
+        # The replay keeps a link payable to day 30; cover ends at the grace period.
+        out["by_grace_end"] = {
+            "grace_days": C.GRACE_DAYS,
+            "layer_debit_after": sum(d > C.GRACE_DAYS for d in debit_days),
+            "layer_link": sum(d <= C.GRACE_DAYS for d in link_days),
+            "layer_link_after": sum(d > C.GRACE_DAYS for d in link_days),
+        }
     return out
 
 
@@ -182,20 +223,30 @@ def salary_recognition(ev: pd.DataFrame) -> dict:
 
 
 def catch_all(attempts: list[dict]) -> dict:
+    """Every failed presentation in months 13 to 24, retries included. Only a due-date failure opens a case,
+    so the same count for due-date failures in the test months is the one the layer's reach depends on."""
     rows = [a for a in attempts if a["code"] in C.CATCH_ALL_CODES and 13 <= C.month_no(date.fromordinal(a["ord"])) <= 24]
     res = bridge.run("triage", [{"errorReason": a["code"], "mandateStatus": a["mandate"], "downtimeActive": bool(a["downtime"])} for a in rows])
-    by_lookup = [(a, r) for a, r in zip(rows, res) if not r["needsAgent"]]
-    left = [a for a, r in zip(rows, res) if r["needsAgent"]]
-    correct = sum(1 for a, r in by_lookup if r["label"] == a["cause"])
-    mix = pd.Series([a["cause"] for a in left]).value_counts(normalize=True).round(3).to_dict() if left else {}
-    return {
-        "catch_all_failures": len(rows),
-        "resolved_by_rules_and_lookups": len(by_lookup),
-        "resolved_share": len(by_lookup) / len(rows) if rows else None,
-        "resolved_correct_share": correct / len(by_lookup) if by_lookup else None,
-        "left_for_triage_agent": len(left),
-        "true_cause_of_those_left": mix,
-    }
+
+    def summary(sel) -> dict:
+        picked = [(a, r) for a, r in zip(rows, res) if sel(a)]
+        by_lookup = [(a, r) for a, r in picked if not r["needsAgent"]]
+        left = [a for a, r in picked if r["needsAgent"]]
+        correct = sum(1 for a, r in by_lookup if r["label"] == a["cause"])
+        mix = pd.Series([a["cause"] for a in left]).value_counts(normalize=True).round(3).to_dict() if left else {}
+        return {
+            "catch_all_failures": len(picked),
+            "resolved_by_rules_and_lookups": len(by_lookup),
+            "resolved_share": len(by_lookup) / len(picked) if picked else None,
+            "resolved_correct_share": correct / len(by_lookup) if by_lookup else None,
+            "left_for_triage_agent": len(left),
+            "true_cause_of_those_left": mix,
+            "true_cause_counts_of_those_left": {k: int(v) for k, v in pd.Series([a["cause"] for a in left]).value_counts().items()},
+        }
+
+    out = summary(lambda a: True)
+    out["due_date_test_months"] = summary(lambda a: a["k"] == 0 and C.month_no(date.fromordinal(a["ord"])) in C.TEST_MONTHS)
+    return out
 
 
 def main():

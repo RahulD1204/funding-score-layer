@@ -2,7 +2,7 @@
 
 Five moments on the live site: one failed EMI from failure to paid, one out-of-reach case, one insurer case, one exceptions-desk case and one Ops assistant question, then the limits. Words to say are in quotes. Everything else is what you click.
 
-The Anthropic account has no credit yet, so every agent shows its fallback. The script is written for that. The last section says what changes once credit is added.
+The agents run live: Harbour's notices are polished by Claude, the exceptions desk agent writes its own reasons, and the Ops assistant answers from the audit log. Each live step has a fallback line in *italics*, to use if that call fails on the day. A failed call never breaks the demo: the site falls back to the template, the rule-based fixes, or "unavailable", which is the fail-open design.
 
 ## Before you start (not timed)
 
@@ -11,10 +11,11 @@ The Anthropic account has no credit yet, so every agent shows its fallback. The 
    - Chrome, Incognito window (File > New Incognito Window): sign in as `lender@northfield.example`.
    - Safari, or a second Chrome profile: sign in as `insurer@harbour.example`.
 2. In the ops window, press **Reset demo** and confirm. The demo clock reads **2 April 2026**.
-3. Rehearse once and time one **Next day** click. The script needs 20 of them (2 April to 22 April). If one click takes more than about 3 seconds, use the short ending in step 6.
-4. Reset the demo again just before you present.
+3. Rehearse once and time one **Next day** click. The script needs 20 of them (2 April to 22 April). In testing a click took about 0.5 to 0.8 seconds, and about 3 seconds on 11 April, when Priya's notice is polished. If clicks take more than about 3 seconds, use the short ending in step 6.
+4. Check the agents are live: after the rehearsal, Priya's notice should say **Polished wording**. If it says **Template text**, the live calls are failing; use the fallback lines.
+5. Reset the demo again just before you present.
 
-Each rehearsal uses about five of the 50 agent runs each user has per real day (the desk agent, Harbour's message polish and the Ops assistant). Reset demo does not give them back; the count restarts on a new real date. With no credit nothing visible depends on it, because over the cap the site shows the same fallbacks.
+Each full run of this script uses 4 of the 50 agent runs the ops login has per real day: Priya's notice twice (2 and 11 April), the desk agent once and the Ops assistant once. The lender and insurer logins use none. That allows about 12 full runs a day (10 if you add Sunita Rao). Reset demo does not give runs back; the count restarts on a new real date (UTC). Over the cap, the site shows the fallbacks.
 
 ## The script
 
@@ -29,7 +30,7 @@ In **Event injector**, for each of these, click the chip and then **Simulate fai
 1. **Case 2 · L-1041** (Asha Verma's EMI): opens with schedules.
 2. **Case 5 · L-1044** (Imran Sheikh's EMI): out of reach.
 3. **Case 9 · I-2011** (Priya Raman's premium): an insurer case.
-4. **Case 7 · L-1046** (Vikram Nair's EMI): a cancelled mandate.
+4. **Case 7 · L-1046** (Vikram Nair's EMI): a cancelled mandate. This one takes about 6 seconds, because the desk agent runs. Talk over it.
 
 "This button stands in for Razorpay's failed-debit webhook. Each failure is triaged by rules first. Only a lack of funds gets a schedule; anything else goes to the exceptions desk."
 
@@ -47,13 +48,17 @@ Go back and open **Imran Sheikh**.
 
 Reload **Renewals**. Open **Priya Raman**.
 
-"The insurer never sees schedule options. It runs on its standing default and sees a date only once it has locked: an early attempt tomorrow, 3 April. The customer notice is already written. Its facts come from code, never from a model. Harbour has message polish on, but it shows Template text: polish needs Claude, and a rewrite is kept only if it passes the word checks."
+"The insurer never sees schedule options. It runs on its standing default and sees a date only once it has locked: an early attempt tomorrow, 3 April. The customer notice is already written, and it says Polished wording: Claude reworded it. But the amount, the dates and the name come from code, and a rewrite is kept only if it keeps every one of them and passes the word checks."
+
+*If it shows Template text: "Here the rewrite was not used, so the customer gets the template. Every fact still comes from code."*
 
 ### 1:30 to 1:50 · The exceptions desk (lender window)
 
 Open **Exceptions desk**.
 
-"Vikram cancelled his mandate, so waiting cannot help. Stopping further attempts ran at once, because that fix is set to automatic in the lender's settings. Sending a re-registration link contacts the customer, so it waits for approval. Nothing reaches a customer unless the merchant approved it."
+"Vikram cancelled his mandate, so waiting cannot help. The desk agent read the case and proposed two fixes, each with a reason. It can only pick from a fixed list, and it decides nothing: stopping further attempts ran at once because the lender set that fix to automatic, and the re-registration link contacts the customer, so it waits for approval. Nothing reaches a customer unless the merchant approved it."
+
+*If the reasons are the plain catalogue wording: "The agent's answer was not used here, so the desk proposed every allowed fix by rule. The merchant still decides."*
 
 Tick the re-registration link and press **Approve selected**.
 
@@ -71,9 +76,11 @@ In the **Cases** list on the ops console, show Asha Verma's case as **Paid**. Th
 
 In **Ops assistant**, type `Why did L-1041 retry on 8 April?` and press **Ask**.
 
-It says: "The assistant is unavailable right now. Read the audit log directly."
+It takes about 10 to 15 seconds. Keep talking: "The assistant can only read the audit log and the case record, with read-only tools, and it must cite the rows it used."
 
-"The assistant has no model credit today, so it says so rather than guess. Its answer would cite audit rows, and only rows its own read-only tools returned count." Open **Audit log and model card** and point at L-1041's rows: the case opening, then one row for each day something happened to it.
+Read out its answer and point at the cited rows under it: the case opening, the default applied on 7 April, the retry notice, the debit on 8 April. "Only rows its own tools returned can be cited. If the log does not hold the answer, it says so."
+
+*If it says the assistant is unavailable: "The assistant failed, so it says so rather than guess." Open **Audit log and model card** and point at L-1041's rows yourself.*
 
 ### 2:35 to 2:45 · The out-of-reach case pays (ops window)
 
@@ -91,14 +98,14 @@ Short ending, if Next day is slow: skip this step and say "On 22 April Imran get
 - **"The clock moved while you clicked."** Two clicks overlapped. Reload the page and carry on.
 - **Simulate failed debit is refused.** The clock has moved past the window for that debit. Press **Reset demo** and start again.
 - **A case shows "Razorpay's original retries apply".** That is the fail-open design working: any error or failed check goes back to the original retries and writes an audit row. Say so and move on.
+- **An agent step is slow.** In testing, the desk agent took 5 to 7 seconds and the Ops assistant 9 to 15 seconds. Keep talking; a call that passes 45 seconds is dropped and the fallback shows.
 
-## Once the Anthropic account has credit
+## Optional: the Failure Triage agent (Sunita Rao, adds about 20 seconds)
 
-Nothing in the code changes. On the same script:
+In the ops window, add **Case 8 · L-1047** to the four debits at the start. It takes about 6 seconds, because the Triage agent runs. It worked in 8 of 8 test runs.
 
-- **Priya's notice** may show **Polished wording** instead of Template text, if Claude's rewrite passes every word check. A rewrite that fails is dropped and the template is used.
-- **The desk** shows the agent's own one-line reason for each fix instead of the catalogue description, if the reason passes the word check.
-- **The Ops assistant** answers in a sentence or two and lists the audit rows it cited.
-- **Case 8 · L-1047** (a catch-all bank code) becomes worth showing: the Triage agent reads the bank's text and the mandate status, and a weak answer still leaves Razorpay's original retries.
+"Sunita's bank sent a catch-all code with no clear reason. The Triage agent checked the mandate, the downtime log and her past failures, and labelled it a lack of funds, strongly. Only a strong answer is accepted, and code re-checks the mandate and downtime itself. Otherwise she would stay on Razorpay's original retries."
 
-Rehearse with credit at least once, and watch the cap: each user has 50 agent runs per real day, and Reset demo does not restore them.
+*If her case shows Razorpay's original retries: "The agent's answer was weak or missing, so the layer stays out. That is the safe default."*
+
+Each run with Sunita uses 5 agent runs instead of 4.

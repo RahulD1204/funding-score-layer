@@ -16,8 +16,8 @@ The rules and their tests came before any screen, because a wrong rule is cheape
 | 5 | Database, access rules and seed | Done | Tables are seeded; the merchant-access tests pass |
 | 6 | Server functions and flow tests | Done | The seeded cases play through the server functions |
 | 7 | Screens on live data | Done | Seeded cases 2, 5 and 9 play through on the Vercel preview link |
-| 8 | Three agents | Done (live runs deferred) | Mocked agent tests pass; three live runs per agent read sensibly |
-| 9 | Message text | Done (live polish deferred) | The template shows first; the polish tests pass |
+| 8 | Three agents | Done (live runs 11 and 12 October) | Mocked agent tests pass; three live runs per agent read sensibly |
+| 9 | Message text | Done (live polish 11 October) | The template shows first; the polish tests pass |
 | 10 | Security review | Done (two console settings are yours) | Every row of `08-security.md` is checked and findings are fixed |
 | 11 | README, demo reset, demo script | Done | Reset works; all tests pass; the demo runs in 3 minutes |
 
@@ -87,6 +87,13 @@ Notes from step 11 (decided 10 October 2026):
 - `README.md` now covers the product, the 26 tables, the ten routes, the agents and their tools, the environment variables, the tests, rebuilding the data and models, and Reset demo (which keeps today's agent-run counts).
 - Reset demo needed no change: every table a server function writes is either emptied or restored from `private.seed_snapshot`. The flow test now compares each restored table with that copy row for row, checks every case table is empty, and checks `usage` is kept.
 - `DEMO-SCRIPT.md` is the three-minute walkthrough. It is written for the agents' fallbacks (no Anthropic credit yet) and says what changes once credit is added.
+
+Notes from the live agent runs (decided 12 October 2026):
+
+- The Anthropic account has credit and the deployed site makes live calls. The deferred live runs of steps 8 and 9 are done; results are in `ml/export/model_card.md`, "Live agent results".
+- Prompts `triage-v2`, `desk-v2` and `ops-v2` replace v1. Triage: no strong balance answer after a recent closed-account or mandate code, and a strong closed-account route (spec 07). Desk: dates written "12 April". Ops: a bank-mandate result arrives two days after the debit and is the same debit. Each was re-measured after the change. `polish-v1` is unchanged.
+- `DEMO-SCRIPT.md` is now written for live agents, with a fallback line for each live step.
+- The model card adds the replay breakdown (out-of-reach against schedule cases, insurance inside grace, days to collect) and the due-date count of catch-all failures, both computed by `ml/fsl/evaluate.py`. The live agent results are copied in by hand in `ml/fsl/export.py`, because the pipeline makes no model call.
 
 Cut line if time runs short: finish 4 to 7 for lending first, then insurance, then 8. The desk works without its agent.
 

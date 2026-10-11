@@ -29,7 +29,9 @@ An agent here is a server function that lets Claude call a short, fixed list of 
 
 **Output:** `{ "label": one of balance | mandate_cancelled | mandate_paused | instrument_closed | bank_downtime | unknown, "strength": "strong" | "weak", "evidence": [short strings] }`
 
-**Strong balance evidence:** the mandate is active, no downtime applies, and the bank text points to funds, or at least three past failures on this obligation were insufficient funds at the same point in the month.
+**Strong balance evidence:** the mandate is active, no downtime applies, and the bank text points to funds, or at least three past failures on this obligation were insufficient funds at the same point in the month. Never strong balance when a failure on this obligation in the last three months had a closed-account or mandate code.
+
+**Strong closed-account evidence:** a recent failure on this obligation had a closed-account code, or the bank text plainly says the account is closed, transferred or invalid. The label sends the case to the exceptions desk, never to a retry. (Added in `triage-v2`, 12 October 2026, after the live measurement found closed accounts answered weak or labelled balance.)
 
 **What rules do with it:** `acceptAgentTriage`. Only a strong, well-formed answer inside the list is accepted, and a balance label is re-checked against the lookups. Otherwise the label is unknown and the case fails open.
 
