@@ -29,6 +29,7 @@ APP_CUSTOMERS = 200  # including the ten seeded cases
 TRAIN_MONTHS = range(13, 19)
 TUNE_MONTHS = range(19, 22)
 TEST_MONTHS = range(22, 25)
+HISTORY_MONTHS = (23, 24)  # February and March 2026: the app's replayed history (specs/00 "Replayed history")
 
 HORIZON = 30  # likelihood by day covers days 0 to 30
 

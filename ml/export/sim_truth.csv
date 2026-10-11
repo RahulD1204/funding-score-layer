@@ -248,3 +248,194 @@ C-00187,L-1268,2026-04-10,0,,,
 C-00188,L-1269,2026-04-15,0,,,
 C-00189,L-1270,2026-04-07,0,,,
 C-00189,I-2167,2026-04-07,0,,,
+C-S09,I-2011,2026-02-02,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S10,I-2012,2026-02-02,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00010,I-2104,2026-02-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00054,I-2115,2026-02-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00145,I-2151,2026-02-02,23,balance,payment_failed,TXN DECLINED - REFER TO BANK
+C-S02,L-1041,2026-02-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S03,L-1042,2026-02-02,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S04,L-1043,2026-02-02,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S05,L-1044,2026-02-02,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S07,L-1046,2026-02-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S08,L-1047,2026-02-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00001,L-1101,2026-02-02,7,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00025,L-1123,2026-02-02,3,balance,transaction_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00034,L-1132,2026-02-02,8,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00043,L-1139,2026-02-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00055,L-1151,2026-02-02,25,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00062,L-1158,2026-02-02,23,balance,bank_declined,TXN DECLINED - REFER TO BANK
+C-00077,L-1171,2026-02-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00086,L-1179,2026-02-02,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00095,L-1187,2026-02-02,25,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00114,L-1205,2026-02-02,1,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00121,L-1212,2026-02-02,3,balance,payment_failed,TXN DECLINED - REFER TO BANK
+C-00128,L-1217,2026-02-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00130,L-1219,2026-02-02,8,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00131,L-1220,2026-02-02,,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00136,L-1224,2026-02-02,1,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00137,L-1225,2026-02-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00152,L-1237,2026-02-02,25,mandate_cancelled,mandate_cancelled,MANDATE CANCELLED BY CUSTOMER
+C-00003,I-2100,2026-02-05,5,balance,transaction_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00186,I-2166,2026-02-05,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00028,L-1126,2026-02-05,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00038,L-1135,2026-02-05,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00066,L-1162,2026-02-05,16,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00074,L-1168,2026-02-05,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00110,L-1201,2026-02-05,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00115,L-1206,2026-02-05,1,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00117,L-1208,2026-02-05,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00129,L-1218,2026-02-05,14,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00145,L-1232,2026-02-05,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00159,L-1244,2026-02-05,,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00009,I-2103,2026-02-07,1,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00115,I-2139,2026-02-07,3,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00009,L-1109,2026-02-07,1,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00012,L-1112,2026-02-07,18,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00016,L-1116,2026-02-07,3,balance,transaction_declined,DEBIT DECLINED BY REMITTER BANK
+C-00044,L-1140,2026-02-07,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00092,L-1184,2026-02-07,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00098,L-1190,2026-02-07,23,balance,transaction_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00112,L-1203,2026-02-07,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00116,L-1207,2026-02-07,,balance,payment_failed,DEBIT DECLINED BY REMITTER BANK
+C-00155,L-1240,2026-02-07,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00158,L-1243,2026-02-07,6,balance,bank_declined,TXN DECLINED - REFER TO BANK
+C-00055,I-2116,2026-02-10,17,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00106,I-2134,2026-02-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00142,I-2150,2026-02-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00006,L-1106,2026-02-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00026,L-1124,2026-02-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00030,L-1128,2026-02-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00036,L-1133,2026-02-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00041,L-1138,2026-02-10,14,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00047,L-1143,2026-02-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00051,L-1147,2026-02-10,17,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00054,L-1150,2026-02-10,23,balance,bank_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00059,L-1155,2026-02-10,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00087,L-1180,2026-02-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00093,L-1185,2026-02-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00134,L-1222,2026-02-10,7,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00146,L-1233,2026-02-10,4,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00156,L-1241,2026-02-10,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00160,L-1245,2026-02-10,17,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00163,L-1248,2026-02-10,0,bank_downtime,bank_declined,TXN DECLINED - REFER TO BANK
+C-00172,L-1255,2026-02-10,17,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00042,I-2111,2026-02-15,12,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00072,I-2124,2026-02-15,23,balance,transaction_declined,TXN DECLINED - REFER TO BANK
+C-00110,I-2136,2026-02-15,7,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00130,I-2146,2026-02-15,9,balance,transaction_declined,DEBIT DECLINED BY REMITTER BANK
+C-00147,I-2152,2026-02-15,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00003,L-1103,2026-02-15,23,balance,bank_declined,TXN DECLINED - REFER TO BANK
+C-00005,L-1105,2026-02-15,10,mandate_cancelled,payment_failed,MANDATE NOT ACTIVE
+C-00014,L-1114,2026-02-15,23,balance,bank_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00032,L-1130,2026-02-15,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00040,L-1137,2026-02-15,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00046,L-1142,2026-02-15,0,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00061,L-1157,2026-02-15,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00068,L-1164,2026-02-15,19,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00073,L-1167,2026-02-15,,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00075,L-1169,2026-02-15,11,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00079,L-1173,2026-02-15,12,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00094,L-1186,2026-02-15,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00100,L-1192,2026-02-15,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00113,L-1204,2026-02-15,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00126,L-1215,2026-02-15,12,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00139,L-1227,2026-02-15,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00154,L-1239,2026-02-15,19,balance,payment_failed,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00178,L-1260,2026-02-15,0,mandate_cancelled,mandate_cancelled,MANDATE CANCELLED BY CUSTOMER
+C-00180,L-1262,2026-02-15,12,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S09,I-2011,2026-03-02,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00054,I-2115,2026-03-02,3,balance,bank_declined,TXN DECLINED - REFER TO BANK
+C-00060,I-2118,2026-03-02,7,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S02,L-1041,2026-03-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S03,L-1042,2026-03-02,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S04,L-1043,2026-03-02,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S05,L-1044,2026-03-02,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S06,L-1045,2026-03-02,4,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S07,L-1046,2026-03-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-S08,L-1047,2026-03-02,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00001,L-1101,2026-03-02,11,balance,transaction_declined,DEBIT DECLINED BY REMITTER BANK
+C-00010,L-1110,2026-03-02,11,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00025,L-1123,2026-03-02,3,balance,bank_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00034,L-1132,2026-03-02,8,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00043,L-1139,2026-03-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00055,L-1151,2026-03-02,29,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00062,L-1158,2026-03-02,23,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00086,L-1179,2026-03-02,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00121,L-1212,2026-03-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00128,L-1217,2026-03-02,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00130,L-1219,2026-03-02,,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00131,L-1220,2026-03-02,8,balance,transaction_declined,TXN DECLINED - REFER TO BANK
+C-00136,L-1224,2026-03-02,1,balance,transaction_declined,DEBIT DECLINED BY REMITTER BANK
+C-00137,L-1225,2026-03-02,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00152,L-1237,2026-03-02,29,mandate_cancelled,bank_declined,MANDATE NOT ACTIVE
+C-00153,L-1238,2026-03-02,11,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00100,I-2131,2026-03-05,8,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00028,L-1126,2026-03-05,5,balance,bank_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00038,L-1135,2026-03-05,7,balance,transaction_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00065,L-1161,2026-03-05,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00074,L-1168,2026-03-05,7,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00097,L-1189,2026-03-05,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00110,L-1201,2026-03-05,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00115,L-1206,2026-03-05,0,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00117,L-1208,2026-03-05,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00145,L-1232,2026-03-05,20,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00159,L-1244,2026-03-05,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00115,I-2139,2026-03-07,0,instrument_closed,payment_failed,INVALID ACCOUNT
+C-00012,L-1112,2026-03-07,18,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00016,L-1116,2026-03-07,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00044,L-1140,2026-03-07,24,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00092,L-1184,2026-03-07,5,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00098,L-1190,2026-03-07,25,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00112,L-1203,2026-03-07,4,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00116,L-1207,2026-03-07,16,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00155,L-1240,2026-03-07,6,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00171,L-1254,2026-03-07,25,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00019,I-2105,2026-03-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00055,I-2116,2026-03-10,21,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00006,L-1106,2026-03-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00030,L-1128,2026-03-10,15,balance,transaction_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00041,L-1138,2026-03-10,7,balance,bank_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00047,L-1143,2026-03-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00051,L-1147,2026-03-10,21,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00052,L-1148,2026-03-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00054,L-1150,2026-03-10,24,balance,bank_declined,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00059,L-1155,2026-03-10,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00087,L-1180,2026-03-10,27,balance,bank_declined,DEBIT DECLINED BY REMITTER BANK
+C-00093,L-1185,2026-03-10,15,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00144,L-1231,2026-03-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00146,L-1233,2026-03-10,13,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00156,L-1241,2026-03-10,1,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00160,L-1245,2026-03-10,21,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00172,L-1255,2026-03-10,21,bank_downtime,bank_declined,TXN DECLINED - REFER TO BANK
+C-00185,L-1267,2026-03-10,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00064,I-2119,2026-03-15,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00072,I-2124,2026-03-15,26,balance,bank_declined,DEBIT DECLINED BY REMITTER BANK
+C-00110,I-2136,2026-03-15,3,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00122,I-2142,2026-03-15,0,bank_downtime,payment_failed,ISSUER BANK NOT AVAILABLE
+C-00130,I-2146,2026-03-15,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00161,I-2155,2026-03-15,19,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00185,I-2165,2026-03-15,16,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00005,L-1105,2026-03-15,10,mandate_cancelled,mandate_cancelled,MANDATE CANCELLED BY CUSTOMER
+C-00014,L-1114,2026-03-15,26,balance,bank_declined,TXN DECLINED - REFER TO BANK
+C-00027,L-1125,2026-03-15,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00032,L-1130,2026-03-15,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00040,L-1137,2026-03-15,16,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00046,L-1142,2026-03-15,0,instrument_closed,account_closed,ACCOUNT CLOSED
+C-00061,L-1157,2026-03-15,2,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00068,L-1164,2026-03-15,23,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00073,L-1167,2026-03-15,4,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00075,L-1169,2026-03-15,18,balance,bank_declined,DEBIT DECLINED BY REMITTER BANK
+C-00079,L-1173,2026-03-15,16,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00094,L-1186,2026-03-15,9,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00100,L-1192,2026-03-15,17,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00106,L-1198,2026-03-15,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00113,L-1204,2026-03-15,10,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00126,L-1215,2026-03-15,16,balance,payment_failed,INSUFFICIENT BAL / LIMIT EXCEEDED
+C-00139,L-1227,2026-03-15,2,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00140,L-1228,2026-03-15,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00149,L-1235,2026-03-15,3,balance,insufficient_funds,INSUFFICIENT FUNDS
+C-00154,L-1239,2026-03-15,23,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00166,L-1251,2026-03-15,0,bank_downtime,bank_technical_error,ISSUER BANK TECHNICAL ERROR
+C-00178,L-1260,2026-03-15,0,mandate_cancelled,payment_failed,TXN DECLINED - REFER TO BANK
+C-00180,L-1262,2026-03-15,16,balance,insufficient_funds,INSUFFICIENT FUNDS

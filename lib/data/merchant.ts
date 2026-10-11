@@ -19,7 +19,10 @@ export async function demoToday(): Promise<string> {
 
 export async function listCases(): Promise<MerchantCaseRow[]> {
   const supabase = await createClient();
-  return must(await supabase.from("merchant_cases").select("*").order("due_date").order("case_id")) as MerchantCaseRow[];
+  // Newest cycle first, so the live April cases sit above the replayed February and March history.
+  return must(
+    await supabase.from("merchant_cases").select("*").order("due_date", { ascending: false }).order("case_id"),
+  ) as MerchantCaseRow[];
 }
 
 export interface MerchantCaseDetail {

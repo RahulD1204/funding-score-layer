@@ -38,6 +38,7 @@ async function Queue() {
           },
         ]}
       />
+      <p className="mt-3 text-sm text-muted">February and March are replayed history on synthetic data.</p>
     </>
   );
 }

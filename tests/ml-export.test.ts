@@ -86,15 +86,23 @@ const one = (rows: Row[], pred: (r: Row) => boolean, what: string): Row => {
   return found[0];
 };
 
-/** The engine inputs a server function would build for one obligation from the exported tables. */
-function inputsFor(obligationId: string) {
+/**
+ * The engine inputs a server function would build for one obligation from the exported tables:
+ * its April 2026 cycle, or a replayed February or March cycle when its due date is given.
+ */
+function inputsFor(obligationId: string, cycleDueDate?: string) {
   const ob = one(obligations, (r) => r.id === obligationId, `obligation ${obligationId}`);
   const product = one(products, (r) => r.id === ob.product_id, "product");
   const merchant = one(merchants, (r) => r.id === ob.merchant_id, "merchant");
   const customer = one(customers, (r) => r.id === ob.customer_id, "customer");
-  const t = one(truth, (r) => r.obligation_id === obligationId, "truth row");
+  const t = one(
+    truth,
+    (r) => r.obligation_id === obligationId && (cycleDueDate ? r.cycle_due_date === cycleDueDate : r.cycle_due_date >= AS_OF),
+    "truth row",
+  );
   const dueDate = t.cycle_due_date;
-  const rows = (txByCustomer.get(ob.customer_id) ?? []).filter((r) => r.date < AS_OF);
+  const asOf = dueDate < AS_OF ? dueDate : AS_OF;
+  const rows = (txByCustomer.get(ob.customer_id) ?? []).filter((r) => r.date < asOf);
 
   const observations: Observation[] = rows
     .filter((r) => r.direction === "debit" && r.status === "success")
@@ -107,7 +115,7 @@ function inputsFor(obligationId: string) {
     .filter((r) => r.direction === "credit")
     .map((r) => ({ date: r.date, amountPaise: Number(r.amount_paise), source: r.source }));
 
-  const windowStart = addMonths(AS_OF, -POLICY.gate.lookbackMonths);
+  const windowStart = addMonths(asOf, -POLICY.gate.lookbackMonths);
   const hasFailureEvidence = rows.some(
     (r) => r.status === "failed" && r.reason_code === "insufficient_funds" && r.date >= windowStart,
   );
@@ -120,7 +128,7 @@ function inputsFor(obligationId: string) {
 
   const input: FailedDebitInput = {
     dueDate,
-    asOf: AS_OF,
+    asOf,
     segment,
     rail: product.rail as FailedDebitInput["rail"],
     amountPaise: Number(ob.amount_paise),
@@ -147,7 +155,7 @@ function inputsFor(obligationId: string) {
       baselineRetryDays: JSON.parse(product.baseline_retry_days),
     },
   };
-  const modelRow = predictions.find((p) => p.obligation_id === obligationId && p.source === "model");
+  const modelRow = predictions.find((p) => p.obligation_id === obligationId && p.cycle_due_date === dueDate && p.source === "model");
   if (modelRow) {
     input.modelScore = {
       h: Number(modelRow.h),
@@ -194,10 +202,10 @@ describe("ml export: the Python median-day rule matches estimateFunding", () => 
 
   it("gives the same funded day, upper day, confidence and likelihood on every exported rule row", () => {
     for (const row of ruleRows) {
-      const { input } = inputsFor(row.obligation_id);
+      const { input } = inputsFor(row.obligation_id, row.cycle_due_date);
       const e = estimateFunding({
         dueDate: input.dueDate,
-        asOf: AS_OF,
+        asOf: input.asOf,
         segment: input.segment,
         debitAmountPaise: input.amountPaise,
         observations: input.observations,
@@ -226,7 +234,7 @@ describe("ml export: the Python median-day rule matches estimateFunding", () => 
 
 describe("ml export: the ten seeded cases end as specs/05 says", () => {
   it("1. L-1040 is paid on the due date: no case", () => {
-    const t = one(truth, (r) => r.obligation_id === "L-1040", "truth");
+    const t = one(truth, (r) => r.obligation_id === "L-1040" && r.cycle_due_date >= AS_OF, "truth");
     expect(t.cycle_due_date).toBe("2026-04-02");
     expect(t.funded_on_day).toBe("0");
     expect(t.reason_code).toBe("");

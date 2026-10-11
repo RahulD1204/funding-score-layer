@@ -2,16 +2,18 @@
 
 Five moments on the live site: one failed EMI from failure to paid, one out-of-reach case, one insurer case, one exceptions-desk case and one Ops assistant question, then the limits. Words to say are in quotes. Everything else is what you click.
 
+The screens open with two months of replayed history (February and March 2026, 191 failed debits played through the real engine), so the queues are full before you start. The four April debits you bring in appear at the top, because the newest cycle is listed first. Reset demo puts the history back.
+
 The agents run live: Harbour's notices are polished by Claude, the exceptions desk agent writes its own reasons, and the Ops assistant answers from the audit log. Each live step has a fallback line in *italics*, to use if that call fails on the day. A failed call never breaks the demo: the site falls back to the template, the rule-based fixes, or "unavailable", which is the fail-open design.
 
 ## Before you start (not timed)
 
 1. Open three separate browser windows, because each login is a cookie and one window holds one login:
-   - Chrome, normal window: sign in as `ops@fsl.example`.
-   - Chrome, Incognito window (File > New Incognito Window): sign in as `lender@northfield.example`.
-   - Safari, or a second Chrome profile: sign in as `insurer@harbour.example`.
+   - Chrome, normal window: click **Sign in as Razorpay ops**.
+   - Chrome, Incognito window (File > New Incognito Window): click **Sign in as lender**.
+   - Safari, or a second Chrome profile: click **Sign in as insurer**.
 2. In the ops window, press **Reset demo** and confirm. The demo clock reads **2 April 2026**.
-3. Rehearse once and time one **Next day** click. The script needs 20 of them (2 April to 22 April). In testing a click took about 0.5 to 0.8 seconds, and about 3 seconds on 11 April, when Priya's notice is polished. If clicks take more than about 3 seconds, use the short ending in step 6.
+3. Rehearse once and time one **Next day** click. The script needs 20 of them (2 April to 22 April). In testing a click took about 0.5 to 0.8 seconds, sometimes up to 3 seconds with the history present, and about 3 seconds on 11 April, when Priya's notice is polished. If clicks take more than about 3 seconds, use the short ending in step 6.
 4. Check the agents are live: after the rehearsal, Priya's notice should say **Polished wording**. If it says **Template text**, the live calls are failing; use the fallback lines.
 5. Reset the demo again just before you present.
 

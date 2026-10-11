@@ -7,10 +7,10 @@ Nine screens: seven behind a login for three roles, one customer mock, and the l
 | # | Screen | Role | What is on it |
 | --- | --- | --- | --- |
 | 1 | Login | All | Three one-click buttons, "Sign in as lender", "Sign in as insurer" and "Sign in as Razorpay ops", with the line "Demo accounts on synthetic data. Click Reset demo on the ops console before you start." Email sign-in below them. One seeded demo account each for a lender, an insurer and ops |
-| 2 | Collections queue | Lender | Summary strip: awaiting choice, in progress, paid, on original retries, failed retries. Table of failed EMIs: borrower, amount, state, next date, retries used, chosen schedule. Badge: "Advice only, you decide" |
+| 2 | Collections queue | Lender | Summary strip: awaiting choice, in progress, paid, on original retries, failed retries. Table of failed EMIs: borrower, amount, state, next date, retries used, chosen schedule. Badge: "Advice only, you decide". Under the table: "February and March are replayed history on synthetic data." |
 | 3 | Case detail | Lender | Two or three schedule cards. Each card: label, dates, likelihood band, days overdue, charges for waiting, difference against the original first retry, a pick button and its deadline. A greyed row with Razorpay's original retries. Plan table, customer message, outcome, activity |
-| 4 | Renewals dashboard | Insurer | Failed premiums with state, end of cover, attempts used, and the next date once it locks. No schedule cards |
-| 5 | Exceptions desk | Lender and insurer | A Needs action queue sorted by deadline: failure label, proposed fix, reason and mode. Approve selected, approve all |
+| 4 | Renewals dashboard | Insurer | Failed premiums with state, end of cover, attempts used, and the next date once it locks. No schedule cards. Under the table: "February and March are replayed history on synthetic data." |
+| 5 | Exceptions desk | Lender and insurer | A Needs action queue: items waiting for approval first, then the rest, each group sorted by deadline. Failure label, proposed fix, reason and mode. Approve selected, approve all |
 | 6 | Settings | Lender and insurer | Per product: last allowed day, maximum re-presentations, standing default, the disclosed penal charge per day and bounce charge. Per fix type: automatic or needs approval. Polish switch, kill switch, consent status |
 | 7 | Customer phone mock | No login | Consent notice, dated message, pay-by-link button, withdraw consent |
 | 8 | Ops console | Ops | Demo clock, event injector with a reason code, triage view (label, evidence, rule or agent), internal case view, the Ops assistant box, Reset demo |

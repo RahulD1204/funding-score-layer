@@ -176,10 +176,14 @@ def _customer_events(args):
                 continue
             if C.month_no(rule.date.fromordinal(cyc["due"])) > 24:
                 continue
+        elif mode == "history":
+            # The replayed February and March 2026 debits: every failed due-date debit, scored on its due date.
+            if C.month_no(rule.date.fromordinal(cyc["due"])) not in C.HISTORY_MONTHS or cyc["day0"] is None or cyc["day0"]["cause"] is None:
+                continue
         elif cyc["due"] < C.DEMO_DUE.toordinal() or C.month_no(rule.date.fromordinal(cyc["due"])) != 25:
             continue
         # App obligations are scored in one batch on 2 April 2026, from data dated before it.
-        asof = None if mode == "train" else C.DEMO_DUE.toordinal()
+        asof = C.DEMO_DUE.toordinal() if mode == "app" else None
         f, (est, meta) = features_for(v, cyc["oid"], cyc["segment"], cyc["amount"], cyc["due"], asof)
         if_fails = [k for k, code, _ in cyc["fails"] if code == "insufficient_funds" and (cyc["paid_day"] is None or k < cyc["paid_day"])]
         row = {
@@ -237,4 +241,7 @@ def main():
     app_events = build(app, "app")
     app_events.to_pickle(C.WORK_DIR / "app_events.pkl")
     print(f"App obligations scored for the April 2026 cycle: {len(app_events)}")
+    history_events = build(app, "history")
+    history_events.to_pickle(C.WORK_DIR / "app_history_events.pkl")
+    print(f"App debits replayed from February and March 2026: {len(history_events)}")
     print(f"Features per row: {len(feature_columns(events))}")

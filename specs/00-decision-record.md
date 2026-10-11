@@ -49,6 +49,7 @@ Why retries only: retiming a retry stays inside the existing mandate and loan co
 | Model work | Python scripts in `ml/`. Never deployed |
 | Razorpay | Mocked: an event injector and a simulated clock. One optional test-mode payment-link call |
 | Data | Synthetic only. No real customer data and no live keys |
+| Replayed history | The demo opens with February and March 2026 already played: every failed due-date debit of the app's obligations in those two months goes through the real engine and server functions, with the clock walking day by day, standing defaults and no agent calls (their fallbacks apply). Waiting customer-contact fixes from that history are marked rejected, so the exceptions desk holds only live items. Reset demo restores this history. It shows what the layer would have done; the raw transactions still show Razorpay's original retries for those months. Decided 12 October 2026 |
 
 ## Signals and model
 

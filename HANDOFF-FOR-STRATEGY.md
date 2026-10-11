@@ -394,7 +394,7 @@ The Python copy of the median-day rule was compared with the app's real rule on 
 | Server routes (`app/api/`) | Ten: process a failed debit, choose a schedule, advance the day, update controls, reset the demo, run the desk, approve fixes, ask the Ops assistant, compose a message, the customer's case | Built; each checks login and role; each fails open on error |
 | Agents (`lib/server/agents/`) | One runner, the tools, versioned prompts, one file that calls Claude | Built; tested with the model mocked; run live and measured (section 7.1). Polish and the Ops assistant seen working on the deployed site; the desk and Triage agents so far only through the test script |
 | Screens | Login; collections queue; lender case; renewals; insurer case; exceptions desk; settings; customer phone mock; ops console; internal case view; audit log and model card; engine preview at `/preview` | Built on live data. The design spec counts nine: login, collections queue, lender case detail, renewals dashboard, exceptions desk, settings, customer phone mock, ops console, audit log and model card. This list of twelve splits out the insurer case (inside renewals in the spec) and the internal case view (inside the ops console), and adds `/preview`, which is not a spec screen |
-| Tests | 272 tests: golden engine, flow, pipeline, desk and message cases; data-export checks; screens; agents with the model mocked; database tests for access rules and full case flows | All pass (one network-flaky test may need a rerun) |
+| Tests | 273 tests: golden engine, flow, pipeline, desk and message cases; data-export checks; screens; agents with the model mocked; database tests for access rules and full case flows | All pass (one network-flaky test may need a rerun) |
 | Security review | Every row of a 20-row threat table checked; secrets searched in code, history and the built site | Done |
 
 **Stack:** Next.js 16 on Vercel (functions run in Mumbai, next to the database); Supabase for Postgres, login and access rules; Claude through the Anthropic API from server code only; Python for modelling.
@@ -426,13 +426,15 @@ All due 2 April 2026. Each EMI Rs 12,000, each premium Rs 2,500.
 
 ## 12. The demo
 
+**Replayed history.** The demo opens with February and March 2026 already played: the seed sends every failed due-date debit of those months (191) through the real server functions, with the clock walking day by day, standing defaults and no model calls. Result: 27 debit schedules, 35 payment links, 33 exceptions-desk cases and 96 on Razorpay's original retries (50 below the confidence floor, 31 catch-all codes with no agent, 10 too little history, 5 control checks). On 2 April the lender queue shows 51 paid, 81 on original retries, 28 in progress (27 of them history cases left in Needs action) and 1 failed. Waiting customer-contact fixes from the history (13) are marked rejected, so the exceptions desk holds only live items, listed first. Queues list the newest cycle first, so the April demo cases sit on top, with the line "February and March are replayed history on synthetic data." Reset demo restores the history exactly. Three live demo runs with the history present gave the same results as before; the Ops assistant cited only April rows for L-1041.
+
 A three-minute script is in `DEMO-SCRIPT.md`, written for live agents with a fallback line for each live step: four failed debits from the ops console (Asha, Imran, Priya, Vikram); Asha's three schedules and Imran's out-of-reach link; Priya's insurer view (date only once locked, "Polished wording"); Vikram on the exceptions desk, with the desk agent's own reasons and approval; Next day through to Asha's debit on 8 April (confirmed 10 April) and Priya on 12 April; the Ops assistant's answer with cited audit rows; Imran paid by link on 22 April; then the limits. Optional: Sunita Rao for the Triage agent (adds about 20 seconds).
 
 Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assistant 10 to 13 s), so the short ending for Imran may be needed. A full run uses 4 of the ops login's 50 daily agent runs.
 
 **Demo mechanics and caveats:**
 - The demo clock moves one day per click; the script needs about 20 clicks.
-- **Reset demo** empties every case, event, plan, schedule card, desk item, message, model-call record and the audit log; restores every setting and consent and the clock (2 April 2026); keeps today's agent-run counts.
+- **Reset demo** empties every case, event, plan, schedule card, desk item, message, model-call record and the audit log, then puts back the replayed February and March history; restores every setting and consent and the clock (2 April 2026); keeps today's agent-run counts.
 - The login page has one-click buttons for the three demo users, so judges need no password. Showing two roles side by side still needs separate browser windows (one login cookie each).
 - Sign-ups are turned off in both Supabase projects; the three demo users are created by the seed script.
 
@@ -493,6 +495,7 @@ Live calls add about 20 to 25 seconds in total (desk agent 5 to 7 s, Ops assista
 15. The mandate "last changed" date is not in the data.
 16. The demo clock moves one day per click; events are accepted only in a short window after the due date.
 16a. The demo is open to anyone with the link (one-click sign-in, section 13). The three logins are shared, so one visitor can use up a day's agent runs or reset the demo during someone else's session.
+16b. The replayed history shows what the layer would have done in February and March, but the raw transactions still record Razorpay's original retries for those months. It ran with no agents, so catch-all codes there stay on original retries. Mandate status is today's for every cycle, and a customer who withdrew consent before April fails open in February and March too (consent is checked by status, not date). The test project carries no history, because the flow tests start from empty case tables.
 
 **Assumptions to confirm with Razorpay** (open questions 1–3 and 8)
 17. Razorpay's real default retry days and counts for eNACH and UPI Autopay.

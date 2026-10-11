@@ -62,7 +62,7 @@ Each one requires a login and checks the role, except the customer mock routes, 
 | `ask-ops-assistant` | The Ops assistant box | Ops | Answers from the audit log and cites rows |
 | `update-controls` | Settings and the customer mock | Lender, insurer, customer token | Limits, standing default, fix switches, kill switch, consent withdrawal, pay by link, mark as paid, force original retries. Calls `recordOutsidePayment` or `stopLayer` |
 | `compose-message` | An action locks, or a link is sent | System | Fills the template, optionally polishes with Claude, validates with `validatePolish`, stores the text |
-| `reset-demo` | The Reset demo button | Ops | Restores the seeded state |
+| `reset-demo` | The Reset demo button | Ops | Restores the seeded state, including the replayed February and March history |
 | `customer-case` | The customer phone mock | Customer token | The phone's fields for one case: message, consent status, whether a link is open. Nothing internal |
 | `create-payment-link` (optional) | A link action | System | Calls Razorpay's Payment Links API with test keys |
 

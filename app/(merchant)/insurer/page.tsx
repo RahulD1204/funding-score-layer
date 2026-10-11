@@ -38,6 +38,7 @@ async function Renewals() {
       <p className="mt-3 text-sm text-muted">
         A next date appears the day before the attempt, once it can no longer change.
       </p>
+      <p className="mt-1 text-sm text-muted">February and March are replayed history on synthetic data.</p>
     </>
   );
 }

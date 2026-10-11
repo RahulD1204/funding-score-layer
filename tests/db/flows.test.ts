@@ -396,6 +396,38 @@ describe.skipIf(!READY)("server functions (test project)", () => {
       expect(await merchantRow("I-2011")).toMatchObject({ state: "scheduled" });
     });
 
+    it("reset demo puts back the replayed history with its own ids, and new rows number after it", async () => {
+      // A small stand-in for the seed's February and March history (migration 20261012000008).
+      const tables = ["debit_events", "cases", "triage_results", "merchant_cases", "schedule_options", "plan_actions", "desk_items", "messages", "llm_runs", "audit_log"];
+      const sorted = (list: { r: unknown }[]) => list.map(({ r }) => JSON.stringify(r)).sort();
+      await reset();
+      await inject("L-1046");
+      await inject("I-2011");
+      const history: Record<string, { r: unknown }[]> = {};
+      for (const t of tables) history[t] = await rows(`select to_jsonb(t) as r from public."${t}" t`);
+      expect(history.desk_items.length).toBeGreaterThan(0);
+      expect(history.messages.length).toBeGreaterThan(0);
+      await owner.query("select private.take_history_snapshot()");
+      try {
+        await inject("L-1041"); // a live case after the copy: Reset demo must remove it
+        expect(await call("reset-demo", "ops")).toMatchObject({ status: 200, json: { today: DUE } });
+        for (const t of tables.filter((t) => t !== "audit_log")) {
+          expect(sorted(await rows(`select to_jsonb(t) as r from public."${t}" t`)), t).toEqual(sorted(history[t]));
+        }
+        const audit = await rows(`select to_jsonb(t) as r from public.audit_log t order by id`);
+        const lastHistoryId = Math.max(...history.audit_log.map(({ r }) => (r as { id: number }).id));
+        expect(sorted(audit.slice(0, -1))).toEqual(sorted(history.audit_log));
+        expect(audit.at(-1)!.r).toMatchObject({ decision: "demo_reset", id: lastHistoryId + 1 });
+        // The id counters moved past the copy, so a new case's rows number after it.
+        await inject("L-1041");
+        const fresh = await rows(`select min(id)::int as id from public.audit_log where case_id = $1`, [caseOf("L-1041")]);
+        expect(fresh[0].id).toBeGreaterThan(lastHistoryId + 1);
+      } finally {
+        await owner.query("delete from private.history_snapshot where true");
+        await reset();
+      }
+    });
+
     it("reset demo puts back settings, consents, the clock, and empties cases and the audit log", async () => {
       await reset();
       await inject("L-1041");

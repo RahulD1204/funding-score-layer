@@ -1,5 +1,5 @@
-// Exceptions desk (specs/02 screen 5). Lender and insurer. A Needs action queue sorted by deadline:
-// failure label, proposed fix, reason and mode. Reads desk_items and merchant_cases only.
+// Exceptions desk (specs/02 screen 5). Lender and insurer. A Needs action queue: items waiting for
+// approval first, then the rest, each sorted by deadline. Failure label, proposed fix, reason and mode. Reads desk_items and merchant_cases only.
 // The approve buttons (components/desk/DeskQueue.tsx) run approve-fixes.
 
 import Link from "next/link";
@@ -21,6 +21,11 @@ const STATUS_WORDS: Record<DeskItemRow["status"], { label: string; tone: "waitin
   rejected: { label: "Rejected", tone: "idle" },
 };
 
+/** A customer-contact fix still waiting for the merchant's approval. */
+function isWaiting(item: DeskItemRow): boolean {
+  return item.status === "proposed" && item.mode === "needs_approval";
+}
+
 /** The item's deadline: as stored, or else the overdue cap of a loan or the end of cover of a premium. */
 function deadlineOf(item: DeskItemRow, products: ProductRow[]): string | null {
   if (item.deadline) return item.deadline;
@@ -36,7 +41,12 @@ async function Desk() {
   const [items, products] = await Promise.all([listDeskItems(), listProducts()]);
   const rows = items
     .map((item) => ({ item, deadline: deadlineOf(item, products) }))
-    .sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999") || a.item.id - b.item.id);
+    .sort(
+      (a, b) =>
+        Number(isWaiting(b.item)) - Number(isWaiting(a.item)) ||
+        (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999") ||
+        a.item.id - b.item.id,
+    );
   const base = viewer.role === "lender" ? "/lender/cases" : "/insurer/cases";
 
   if (rows.length === 0) {
@@ -60,7 +70,7 @@ async function Desk() {
       mode: item.mode,
       deadline: deadline ? formatDate(deadline) : null,
       status: STATUS_WORDS[item.status],
-      waiting: item.status === "proposed" && item.mode === "needs_approval",
+      waiting: isWaiting(item),
     };
   });
 

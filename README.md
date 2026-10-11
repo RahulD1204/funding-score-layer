@@ -37,7 +37,9 @@ The login page has a one-click button for each ("Sign in as lender", "Sign in as
 
 **Anyone with the link can use the demo.** The login page has one-click buttons that sign in the lender, the insurer or Razorpay ops, with no password. What limits the damage: the data is synthetic; sign-ups are off, so no one can create a login; each login has 50 agent runs a day; the Anthropic key has its own spend limit; only the three seeded demo emails can be signed in this way, from the site's own pages; no password reaches the browser. Because everyone shares the same three logins, one visitor can use up a login's runs for the day or press Reset demo during someone else's session.
 
-The passwords are the values of `DEMO_LENDER_PASSWORD`, `DEMO_INSURER_PASSWORD` and `DEMO_OPS_PASSWORD`. They are not in this repository, and the deployed site does not need them. Sign-ups are turned off in both Supabase projects, so no one else can create a login. The customer's side is a phone mock at `/c/<token>`, opened from the ops internal case view. The engine preview, with no database, is at `/preview`.
+The passwords are the values of `DEMO_LENDER_PASSWORD`, `DEMO_INSURER_PASSWORD` and `DEMO_OPS_PASSWORD`. They are not in this repository, and the deployed site does not need them. Sign-ups are turned off in both Supabase projects, so no one else can create a login. **Replayed history.** The demo opens with February and March 2026 already played: the seed sends every failed due-date debit of those two months (191) through the real server functions, walking the demo clock day by day (`scripts/history.ts`). Standing defaults apply and no model is called, so the agents and polish fall back as designed: catch-all codes keep Razorpay's original retries and notices use the template. Waiting customer-contact fixes from that history are marked rejected, so the exceptions desk holds only live items. The queues list the newest cycle first and say "February and March are replayed history on synthetic data." History cases show what the layer would have done; the raw transactions still show Razorpay's original retries for those months.
+
+The customer's side is a phone mock at `/c/<token>`, opened from the ops internal case view. The engine preview, with no database, is at `/preview`.
 
 [DEMO-SCRIPT.md](DEMO-SCRIPT.md) is a three-minute walkthrough.
 
@@ -96,7 +98,7 @@ Otherwise the template is sent. The desk agent's reason goes through the same ba
 
 **System (5):** `sim_clock` (the simulated date; all time logic reads it, never the real date), `sim_truth` (when each customer is really funded, read only by `advance-day` and the tests), `prompts`, `llm_runs`, `usage` (agent runs per user per day).
 
-The hidden `private` schema holds `seed_snapshot`, the copy of the seeded settings that Reset demo restores. It is not one of the 26.
+The hidden `private` schema holds `seed_snapshot`, the copy of the seeded settings that Reset demo restores, and `history_snapshot`, the copy of the replayed February and March case rows it puts back. Neither is one of the 26.
 
 ## Environment variables
 
@@ -180,7 +182,7 @@ npm run db:migrate -- --target demo
 npm run db:seed -- --target demo
 ```
 
-The migration runner applies only files the database has not seen. The seed empties every table and loads them again from `ml/export/`, so it is safe to rerun. It creates the demo users through Supabase's admin service, or resets their passwords if they exist, and sets the demo clock to 2 April 2026. After any new migration, run both commands on both projects.
+The migration runner applies only files the database has not seen. The seed empties every table and loads them again from `ml/export/`, so it is safe to rerun. It creates the demo users through Supabase's admin service, or resets their passwords if they exist, and sets the demo clock to 2 April 2026. On the demo project it then replays February and March 2026 (about four minutes; `--no-history` skips it). The test project gets no history unless you add `--history`, because the flow tests start from empty case tables. After any new migration, run both commands on both projects.
 
 ## Rebuilding the data and models
 
@@ -196,7 +198,7 @@ It takes about two minutes, uses a fixed seed, and writes the same files every t
 
 Sign in as ops, open the ops console and press **Reset demo**, then confirm. It:
 
-- empties every case, debit event, plan, schedule card, desk item, customer message, model-call record and the **audit log**, then writes one "demo reset" audit row saying who reset it,
+- empties every case, debit event, plan, schedule card, desk item, customer message, model-call record and the **audit log**, puts back the replayed February and March history with its own ids, then writes one "demo reset" audit row saying who reset it,
 - puts back every merchant setting the screens can change (limits, standing defaults, fix modes, kill switches, polish switches) and every customer consent, from the copy the seed saved,
 - sets the demo clock back to 2 April 2026,
 - **keeps today's agent-run counts.** The cap of 50 runs per user restarts only on a new real date (UTC), so resetting cannot be used to start a fresh 50.

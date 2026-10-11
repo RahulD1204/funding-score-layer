@@ -13,8 +13,10 @@ import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { FIX_CATALOGUE, FIX_TYPES } from "../lib/engine/desk";
+import { POLICY_VERSION } from "../lib/engine/policy";
 import { ALL_PROMPTS } from "../lib/server/agents/prompts";
 import { parseCsv } from "./csv";
+import { HISTORY_ACTOR, buildHistory } from "./history";
 import { DB_SSL, DEMO_USERS, SEED_TODAY, demoPassword, loadTarget, targetFromArgs, type TargetConfig } from "./targets";
 
 const EXPORT_DIR = join(import.meta.dirname, "..", "ml", "export");
@@ -190,6 +192,8 @@ async function main() {
 
     // The copy Reset demo restores the seeded settings and clock from (migration 20261010000003).
     await db.query("select private.take_seed_snapshot()");
+    // The old history copy goes too, so a seed that stops below never leaves a stale one for Reset demo.
+    await db.query("delete from private.history_snapshot where true");
 
     await db.query("commit");
   } catch (error) {
@@ -201,7 +205,60 @@ async function main() {
 
   console.log("Rows loaded:");
   for (const [table, n] of counts) console.log(`  ${table.padEnd(18)} ${n.toLocaleString("en-IN")}`);
+
+  // The demo project opens with the replayed history. The test project stays empty unless asked
+  // (--history), because the flow tests start from empty case tables.
+  const withHistory = config.target === "demo" ? !process.argv.includes("--no-history") : process.argv.includes("--history");
+  if (!withHistory) {
+    console.log(`No replayed history (${config.target === "demo" ? "--no-history" : "add --history to build it"}).`);
+    console.log(`sim_clock.today is ${SEED_TODAY}.`);
+    return;
+  }
+  try {
+    await replayHistory(config);
+  } catch (error) {
+    console.error(`The tables are loaded, but the replayed history stopped: ${(error as Error).message}`);
+    console.error("Run the seed again. Until then Reset demo restores no history.");
+    process.exit(1);
+  }
   console.log(`sim_clock.today is ${SEED_TODAY}.`);
+}
+
+/**
+ * Plays February and March 2026 through the server functions (scripts/history.ts), marks the
+ * replay's waiting customer-contact fixes as rejected so the exceptions desk holds only live items,
+ * and keeps the copy Reset demo restores (migration 20261012000008).
+ */
+async function replayHistory(config: TargetConfig) {
+  console.log("Replaying February and March 2026 (no model calls, a few minutes):");
+  const routes = await buildHistory(config, SEED_TODAY);
+  for (const [route, n] of Object.entries(routes)) console.log(`  ${route.padEnd(18)} ${n}`);
+
+  const db = new pg.Client({ connectionString: config.dbUrl, ssl: DB_SSL });
+  await db.connect();
+  try {
+    await db.query("begin");
+    const { rows: waiting } = await db.query(
+      "update public.desk_items set status = 'rejected' where status = 'proposed' and mode = 'needs_approval' returning case_id, fix_type",
+    );
+    for (const w of waiting) {
+      await db.query(
+        `insert into public.audit_log (clock_date, actor, case_id, decision, internal_reason, policy_version)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [SEED_TODAY, HISTORY_ACTOR, w.case_id, `fix_rejected:${w.fix_type}`,
+         "Replayed history: this fix was not approved, so the demo opens with only live items waiting.", POLICY_VERSION],
+      );
+    }
+    await db.query("update public.sim_clock set today = $1 where id", [SEED_TODAY]);
+    await db.query("select private.take_history_snapshot()");
+    await db.query("commit");
+    console.log(`  waiting fixes marked rejected: ${waiting.length}`);
+  } catch (error) {
+    await db.query("rollback");
+    throw error;
+  } finally {
+    await db.end();
+  }
 }
 
 main().catch((error) => {

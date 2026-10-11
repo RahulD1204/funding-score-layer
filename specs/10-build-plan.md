@@ -109,6 +109,13 @@ Notes on policy v1.3 (decided 12 October 2026):
 - Golden case P4's closed-account answer changed with the spec: it reaches the desk with a past `account_closed` code, and the same answer on bank text alone fails open.
 - 29 of the 30 test-month closed accounts have such a code, so the Triage table measured under v1.2 would not change. No prompt changed.
 
+Notes on replayed history (decided 12 October 2026):
+
+- The demo opens with February and March 2026 played (specs/00 "Replayed history"). `ml/` exports truth, evidence rows and rule and model scores for the 191 failed due-date debits of those months, each as of its due date, and transactions from 1 February 2025; every April 2026 export row is unchanged. `scripts/history.ts` (run by the seed) injects each failure on its due date through `process-debit-event` and runs `advance-day` up to 2 April, with no model name set, so no model is called and no daily run is claimed. The seed then marks waiting customer-contact fixes rejected and calls `private.take_history_snapshot()`; migration 20261012000008 makes `reset_demo` restore that copy with its own ids.
+- The seed replays history on the demo project by default (`--no-history` skips it) and on the test project only with `--history`, because the flow tests start from empty case tables. A new flow test checks the restore with a small stand-in history.
+- Screens: queues list the newest cycle first with a one-line note; the exceptions desk lists waiting items first. `HttpError` now uses plain fields, because Node's type stripping (which runs the server functions under the seed) does not support constructor parameter properties.
+- Checked on the test project: Reset demo brings back all 191 cases and every case table identically; the replay gives the same counts on every seed; three live demo runs gave the scripted endings, and the Ops assistant cited only April rows.
+
 Notes on one-click demo sign-in (decided 12 October 2026):
 
 - The login page has three buttons that sign in the seeded lender, insurer and ops users, for judges (spec 02 screen 1, spec 08 row 21). `POST /api/demo-sign-in` accepts only the three demo emails, only from the site's own pages. The server asks Supabase's admin service for a one-time sign-in token (`generateLink`, no email sent) and redeems it with the cookie-backed client (`verifyOtp`), so no password is involved. It uses the Supabase secret key the server already has; no new environment variable.

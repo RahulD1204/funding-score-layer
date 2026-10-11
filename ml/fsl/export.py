@@ -30,7 +30,9 @@ from .features import CustomerView
 from .generate import SEEDED, _status_at
 
 DEMO_ORD = C.DEMO_DUE.toordinal()
-TX_FROM = date(2025, 4, 1).toordinal()
+# Twelve months before the first replayed debit (2 February 2026), so history scores see a full year.
+TX_FROM = date(2025, 2, 1).toordinal()
+CONSENT_FROM = date(2025, 4, 1).toordinal()  # customer consents start no earlier than this
 
 
 def iso(o) -> str | None:
@@ -72,6 +74,7 @@ def main():
     with open(C.WORK_DIR / "evaluation.json") as f:
         report = json.load(f)
     events = pd.read_pickle(C.WORK_DIR / "app_events.pkl")
+    history = pd.read_pickle(C.WORK_DIR / "app_history_events.pkl")
     profiles = sorted(app["profiles"], key=lambda p: (not p.seeded, p.cid))
     oid = obligation_ids(profiles)
     seeded_oids = {s["oid"] for s in SEEDED}
@@ -120,7 +123,7 @@ def main():
                 withdrawn = iso(DEMO_ORD - int(rng.integers(5, 50)))
             consent_rows.append({"customer_id": p.cid, "merchant_id": merchant, "party": "customer", "purpose": "retry_timing",
                                  "status": "withdrawn" if withdrawn else "granted",
-                                 "granted_date": iso(max(ob.start, TX_FROM)), "withdrawn_date": withdrawn})
+                                 "granted_date": iso(max(ob.start, CONSENT_FROM)), "withdrawn_date": withdrawn})
     _write(pd.DataFrame(ob_rows), "obligations")
     _write(pd.DataFrame(consent_rows), "consents")
 
@@ -133,7 +136,7 @@ def main():
                 windows.append({"bank": bank, "_from": o, "_to": o})
     _write(pd.DataFrame([{"bank": w["bank"], "from_date": iso(w["_from"]), "to_date": iso(w["_to"])} for w in windows]), "bank_downtimes")
 
-    # --- transactions: the last 12 months before 2 April 2026 -------------------
+    # --- transactions: 1 February 2025 to 1 April 2026 --------------------------
     tx = app["tx"]
     tx = tx[(tx.ord >= TX_FROM) & (tx.ord < DEMO_ORD)].copy()
     order = {p.cid: i for i, p in enumerate(profiles)}
@@ -185,6 +188,27 @@ def main():
         pred_rows.append({"obligation_id": r.oid, "cycle_due_date": due, "source": "model", "h": int(mh[i]), "u": int(mu[i]),
                           "likelihood_by_day": json.dumps([float(x) for x in cdf[i]]), "confidence": int(mconf[i]),
                           "model_version": version})
+    # The replayed February and March debits, each scored as of its own due date (specs/05).
+    hist = history.copy()
+    hist["oid"] = hist.obligation_id.map(oid)
+    hist = hist.sort_values(["due", "oid"], kind="stable").reset_index(drop=True)
+    hraw = TR.quantile_cdf(models["quantile"], hist) if models["chosen"] == "quantile" else TR.aft_cdf(models["aft"], hist)
+    hcdf = np.round(TR.calibrate(models["calibration"], hraw), 4)
+    hh = TR.point_h(hcdf)
+    hu = EV.model_u(hcdf, hh)
+    hconf = EV.model_confidence(hcdf, hh)
+    for i, r in enumerate(hist.itertuples()):
+        due = iso(r.due)
+        est = r.rule_estimate
+        if est is not None:
+            pred_rows.append({"obligation_id": r.oid, "cycle_due_date": due, "source": "rule", "h": est["h"], "u": est["u"],
+                              "likelihood_by_day": json.dumps(est["likelihood"]), "confidence": est["confidence_before"],
+                              "model_version": f"rule-{C.policy_version()}"})
+        if r.oid in seeded_oids:
+            continue
+        pred_rows.append({"obligation_id": r.oid, "cycle_due_date": due, "source": "model", "h": int(hh[i]), "u": int(hu[i]),
+                          "likelihood_by_day": json.dumps([float(x) for x in hcdf[i]]), "confidence": int(hconf[i]),
+                          "model_version": version})
     _write(pd.DataFrame(pred_rows), "predictions")
 
     truth_rows = []
@@ -198,6 +222,16 @@ def main():
             "customer_id": r["customer_id"], "obligation_id": r["id"], "cycle_due_date": iso(cyc["due"]),
             "funded_on_day": cyc["funded"], "true_cause": d0["cause"] if failed else None,
             "reason_code": d0["code"] if failed else None, "bank_text": d0["text"] if failed else None,
+        })
+    # Plus every replayed debit: a February or March 2026 cycle whose due-date debit failed.
+    cust_of = {r["id"]: r["customer_id"] for r in ob_rows}
+    for c in sorted(app["cycles"], key=lambda c: (c["due"], oid[c["oid"]])):
+        if C.month_no(date.fromordinal(c["due"])) not in C.HISTORY_MONTHS or c["day0"] is None or c["day0"]["cause"] is None:
+            continue
+        d0 = c["day0"]
+        truth_rows.append({
+            "customer_id": cust_of[oid[c["oid"]]], "obligation_id": oid[c["oid"]], "cycle_due_date": iso(c["due"]),
+            "funded_on_day": c["funded"], "true_cause": d0["cause"], "reason_code": d0["code"], "bank_text": d0["text"],
         })
     truth = pd.DataFrame(truth_rows)
     truth["funded_on_day"] = truth.funded_on_day.astype("Int64")
@@ -214,6 +248,17 @@ def main():
             "has_failure_evidence": bool(e.failure_evidence), "identity_linked": True,
             "anchor_kind": est["anchor_kind"] if est else None, "anchor_value": est["anchor_value"] if est else None,
             "spread": est["mad"] if est else None, "confidence": est["confidence"] if est else None, "tier": e.tier,
+            "salary_recognized": bool(est and est["salary"]),
+            "likelihood_by_day": json.dumps(est["likelihood"]) if est else None,
+        })
+    for r in hist.itertuples():
+        est = r.rule_estimate
+        signal_rows.append({
+            "customer_id": r.customer_id, "as_of_date": iso(r.due), "obligation_id": r.oid,
+            "timing_observations": int(r.timing), "months_covered": int(r.months), "affordability_observations": int(r.afford),
+            "has_failure_evidence": bool(r.failure_evidence), "identity_linked": True,
+            "anchor_kind": est["anchor_kind"] if est else None, "anchor_value": est["anchor_value"] if est else None,
+            "spread": est["mad"] if est else None, "confidence": est["confidence"] if est else None, "tier": r.tier,
             "salary_recognized": bool(est and est["salary"]),
             "likelihood_by_day": json.dumps(est["likelihood"]) if est else None,
         })
