@@ -1,5 +1,15 @@
 # Funding Score Layer (prototype)
 
+## For judges
+
+- **Try it:** https://funding-score-layer.vercel.app. Click **Sign in as lender**, **Sign in as insurer** or **Sign in as Razorpay ops**; no password needed. As ops, press **Reset demo** on the ops console before you start. February and March 2026 are already played as history; `DEMO-SCRIPT.md` walks through April in three minutes.
+- **All data is synthetic.** No real customers, accounts or keys. **This is not an official Razorpay product**; it was built for Razorpay's AI PM Build Challenge.
+- **The rules** are in `lib/engine/`: every decision (triage, consent checks, evidence gate, funded-day estimate, schedules, case clock, exceptions desk, message checks) as pure functions with no database, clock, network or model. Their golden cases are in `tests/`.
+- **The agents** (Failure Triage, Exceptions desk, Ops assistant) are in `lib/server/agents/`: prompts in `prompts.ts`, read-only tools in `tools.ts`. `specs/07-agents.md` says what each may do and what the rules do with its answer.
+- **The model card** is `ml/export/model_card.md`: the model against the rule baseline, calibration, fairness by customer type, the replay breakdown and the live agent results. The Python that builds it is in `ml/`.
+- **Run the tests** (built with Node 24): `npm install`, then `npm test`. The golden cases need nothing else: in a fresh copy, 218 tests pass and 55 are skipped. The skipped ones are the database tests, which need a test Supabase project, and the check that the built site holds no demo password, which needs a build and the passwords.
+- **Why it is built this way:** `specs/00-decision-record.md` holds every product decision; `HANDOFF-FOR-STRATEGY.md` is the full write-up with results and caveats.
+
 When a loan EMI or an insurance premium debit fails because the account is short, the usual retries follow a fixed calendar and often fail again before the money arrives. This layer estimates the day each customer is usually funded and suggests retry dates that wait for it.
 
 It is **advice only**. The merchant decides, the layer never moves money, and any doubt falls back to Razorpay's original retries. Version 1 retimes retries only: the due-date debit always runs as usual and no due date ever changes.
